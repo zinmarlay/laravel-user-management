@@ -103,8 +103,6 @@ class UserController extends Controller
         Gate::authorize('delete', $user); // login ၀င်ထားတဲ့သူက delete route က $user ကိုဖျက်ခွင့်၇ှိလားစစ်
         $user->delete();
 
-        return response()->json([
-            'message' => 'User deleted successfully.',
-        ]);
+        return response()->noContent();
     }
 }
