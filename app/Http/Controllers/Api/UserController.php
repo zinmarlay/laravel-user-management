@@ -90,8 +90,7 @@ class UserController extends Controller
             $validated['password'] = Hash::make($validated['password']);
         }
         $user->update($validated);
-
-        return response()->json($user);
+        return new UserResource($user);
     }
 
     /**
