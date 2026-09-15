@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateUserRequest;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
@@ -51,7 +52,9 @@ class UserController extends Controller
             'address' => $validated['address'] ?? null,
         ]);
 
-        return response()->json($user, 201);
+        return (new UserResource($user)
+            ->response()
+            ->status(201));
     }
 
     /**
