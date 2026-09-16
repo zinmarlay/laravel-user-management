@@ -52,9 +52,10 @@ class UserController extends Controller
             'address' => $validated['address'] ?? null,
         ]);
 
-        return (new UserResource($user)
-            ->response()
-            ->status(201));
+        return response()->json(
+            new UserResource($user),
+            201
+        );
     }
 
     /**
