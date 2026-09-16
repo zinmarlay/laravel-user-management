@@ -243,4 +243,20 @@ class UserApiTest extends TestCase
         $response = $this->deleteJson("api/users/{$user2->id}");
         $response->assertStatus(403);
     }
+    public function test_user_not_found_returns_404(): void
+    {
+        $user = User::create(
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'role' => 'normal',
+                'password' => 'password'
+            ]
+        );
+        Sanctum::actingAs($user);
+        $response = $this->getJson("api/users/999999");
+        $response->assertJson([
+            'message' => 'User not found',
+        ]);
+    }
 }
