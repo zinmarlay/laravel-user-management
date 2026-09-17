@@ -1,16 +1,100 @@
-# React + Vite
+# User Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + Material UI を使用した User Management System のフロントエンドです。
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- User Login
+- User List
+- User Search
+- User Pagination
+- User Edit
+- User Delete
+- User Role Change
+- Authentication
+- Authorization
+- API Error Handling
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React
+- Vite
+- Material UI
+- JavaScript
+- REST API
 
-## Expanding the Oxlint configuration
+## Requirements
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- Node.js
+- npm
+- Laravel Backend API
+
+## Installation
+
+    npm install
+
+## Development
+
+    npm run dev
+
+## Lint
+
+    npm run lint
+
+## Production Build
+
+    npm run build
+
+## Test Login Accounts
+
+### Admin Account
+
+- Email: `admin@example.com`
+- Password: `password`
+
+### User Account
+
+- Email: `user@example.com`
+- Password: `password`
+
+> These accounts are for local development and testing only.
+> Do not use these credentials in production.
+
+## Login
+
+1. Start the Laravel backend.
+2. Start the frontend with `npm run dev`.
+3. Open the frontend in your browser.
+4. Sign in using one of the test accounts above.
+
+## Project Structure
+
+    src/
+    ├── components/
+    │   ├── auth/
+    │   └── users/
+    ├── pages/
+    │   ├── LoginPage.jsx
+    │   └── UserListPage.jsx
+    ├── services/
+    │   ├── apiError.js
+    │   ├── authApi.js
+    │   └── usersApi.js
+    ├── App.jsx
+    └── App.css
+
+## API
+
+The frontend communicates with the Laravel backend through REST API endpoints.
+
+Main endpoints:
+
+    POST   /api/login
+    GET    /api/users
+    PUT    /api/users/{id}
+    DELETE /api/users/{id}
+    PATCH  /api/users/{id}/role
+
+## Notes
+
+This project is intended for development and learning purposes.
