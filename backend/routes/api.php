@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::apiResource('/users', UserController::class);
+        Route::patch('/users/{user}/role', [UserController::class, 'updateRole']);
     }
 
 );

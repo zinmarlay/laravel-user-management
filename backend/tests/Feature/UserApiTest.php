@@ -206,6 +206,122 @@ class UserApiTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_admin_can_update_another_user(): void
+    {
+        $admin = User::create(
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+                'password' => 'password'
+            ]
+        );
+        $user = User::create(
+            [
+                'name' => 'User',
+                'email' => 'user@example.com',
+                'role' => 'role',
+                'password' => 'password'
+            ]
+        );
+
+        Sanctum::actingAs($admin);
+        $response = $this->putJson("api/users/{$user->id}", [
+            'name' => 'Edit User',
+        ]);
+        $response->assertStatus(200);
+    }
+
+    public function test_admin_can_update_user_role(): void
+    {
+        $admin = User::create(
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+                'password' => 'password'
+            ]
+        );
+        $user = User::create(
+            [
+                'name' => 'User',
+                'email' => 'user@example.com',
+                'role' => 'role',
+                'password' => 'password'
+            ]
+        );
+
+        Sanctum::actingAs($admin);
+        $response = $this->patchJson("api/users/{$user->id}/role", [
+            'role' => 'admin',
+        ]);
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'role' => 'admin',
+        ]);
+    }
+
+    public function test_non_admin_cannot_update_user_role(): void
+    {
+        $user1 = User::create(
+            [
+                'name' => 'user1',
+                'email' => 'user1@example.com',
+                'role' => 'user',
+                'password' => 'password'
+            ]
+        );
+        $user2 = User::create(
+            [
+                'name' => 'user2',
+                'email' => 'user2@example.com',
+                'role' => 'user',
+                'password' => 'password'
+            ]
+        );
+
+        Sanctum::actingAs($user1);
+        $response = $this->patchJson("api/users/{$user2->id}/role", [
+            'role' => 'admin',
+        ]);
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('users', [
+            'id' => $user2->id,
+            'role' => 'user',
+        ]);
+    }
+
+    public function test_invalid_role_cannot_be_updated(): void
+    {
+        $admin = User::create(
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+                'password' => 'password'
+            ]
+        );
+        $user = User::create(
+            [
+                'name' => 'User',
+                'email' => 'user@example.com',
+                'role' => 'user',
+                'password' => 'password'
+            ]
+        );
+
+        Sanctum::actingAs($admin);
+        $response = $this->patchJson("api/users/{$user->id}/role", [
+            'role' => 'manager',
+        ]);
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'role' => 'user',
+        ]);
+    }
+
     public function test_admin_can_delete_user(): void
     {
         $user = User::create(
@@ -221,6 +337,33 @@ class UserApiTest extends TestCase
         $response->assertStatus(204);
         $this->assertDatabaseMissing('users');
     }
+
+    public function test_admin_can_delete_another_user(): void
+    {
+        $admin = User::create(
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+                'password' => 'password'
+            ]
+        );
+        $user = User::create(
+            [
+                'name' => 'User',
+                'email' => 'user@example.com',
+                'role' => 'role',
+                'password' => 'password'
+            ]
+        );
+        Sanctum::actingAs($admin);
+        $response = $this->deleteJson("api/users/{$user->id}");
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('users', [
+            'email' => 'user@example.com',
+        ]);
+    }
+
     public function test_non_admin_cannot_delete_user(): void
     {
         $user1 = User::create(
@@ -243,6 +386,7 @@ class UserApiTest extends TestCase
         $response = $this->deleteJson("api/users/{$user2->id}");
         $response->assertStatus(403);
     }
+
     public function test_user_not_found_returns_404(): void
     {
         $user = User::create(

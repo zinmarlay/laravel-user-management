@@ -93,6 +93,28 @@ class UserController extends Controller
         $user->update($validated);
         return new UserResource($user);
     }
+    /**
+     * Undocumented function
+     *
+     * @param Request $request
+     * @param User $user
+     * @return void
+     */
+    public function updateRole(Request $request, User $user)
+    {
+        // ① Login user က role ပြောင်းခွင့်ရှိလား စစ်မယ်
+        Gate::authorize('updateRole', $user);
+        // ② role ကို validation လုပ်မယ်
+        $validated = $request->validate([
+            'role' => 'required|in:admin,user',
+        ]);
+        // ③ role update လုပ်မယ်
+        $user->update([
+            'role' => $validated['role'],
+        ]);
+        // ④ Updated user ကို response ပြန်မယ်
+        return new UserResource($user);
+    }
 
     /**
      * $user က ဖျက်ခံ၇မယ့် User ပါ

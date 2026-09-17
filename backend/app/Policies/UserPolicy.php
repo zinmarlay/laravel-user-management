@@ -62,4 +62,11 @@ class UserPolicy
     {
         return false;
     }
+    /**
+     * Determine whether the user can change user role
+     */
+    public function updateRole(User $user, User $model): bool
+    {
+        return $user->role === 'admin';
+    }
 }
