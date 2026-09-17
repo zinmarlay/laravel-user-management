@@ -12,6 +12,12 @@ function displayValue(value) {
     return value === null || value === undefined || value === "" ? "—" : value;
 }
 
+function getAccessibleUserName(user) {
+    return typeof user?.name === "string" && user.name.trim()
+        ? user.name.trim()
+        : "user";
+}
+
 function UserTable({
     users,
     onEdit,
@@ -60,32 +66,35 @@ function UserTable({
                             </TableCell>
                             <TableCell className="user-list-page__actions-cell">
                                 <Stack
+                                    className="user-list-page__action-buttons"
                                     direction="row"
-                                    spacing={1}
-                                    sx={{ flexWrap: "wrap" }}
+                                    spacing={0.75}
                                 >
                                     <Button
                                         size="small"
+                                        variant="outlined"
                                         onClick={() => onEdit(user)}
                                         disabled={actionsDisabled}
-                                        aria-label={`Edit ${user.name || "user"}`}
+                                        aria-label={`Edit ${getAccessibleUserName(user)}`}
                                     >
                                         Edit
                                     </Button>
                                     <Button
                                         size="small"
                                         color="error"
+                                        variant="outlined"
                                         onClick={() => onDelete(user)}
                                         disabled={actionsDisabled}
-                                        aria-label={`Delete ${user.name || "user"}`}
+                                        aria-label={`Delete ${getAccessibleUserName(user)}`}
                                     >
                                         Delete
                                     </Button>
                                     <Button
                                         size="small"
+                                        variant="outlined"
                                         onClick={() => onChangeRole(user)}
                                         disabled={actionsDisabled}
-                                        aria-label={`Change role for ${user.name || "user"}`}
+                                        aria-label={`Change role for ${getAccessibleUserName(user)}`}
                                     >
                                         Change Role
                                     </Button>

@@ -11,8 +11,22 @@ function hasStoredToken() {
   }
 }
 
+function getSafeCurrentUser(user) {
+  if (!user || typeof user !== 'object' || Array.isArray(user)) {
+    return null
+  }
+
+  return {
+    id: user.id ?? null,
+    name: typeof user.name === 'string' ? user.name : '',
+    email: typeof user.email === 'string' ? user.email : '',
+    role: typeof user.role === 'string' ? user.role : '',
+  }
+}
+
 function App() {
   const [authenticated, setAuthenticated] = useState(hasStoredToken)
+  const [currentUser, setCurrentUser] = useState(null)
 
   const handleAuthenticated = useCallback((response) => {
     try {
@@ -22,6 +36,7 @@ function App() {
     }
 
     setAuthenticated(true)
+    setCurrentUser(getSafeCurrentUser(response?.user))
   }, [])
 
   const handleUnauthenticated = useCallback(() => {
@@ -31,6 +46,7 @@ function App() {
       // The in-memory auth state still prevents access to protected content.
     }
 
+    setCurrentUser(null)
     setAuthenticated(false)
   }, [])
 
@@ -41,6 +57,7 @@ function App() {
       // The in-memory auth state still prevents access to protected content.
     }
 
+    setCurrentUser(null)
     setAuthenticated(false)
   }, [])
 
@@ -49,6 +66,7 @@ function App() {
       <CssBaseline />
       {authenticated ? (
         <UserListPage
+          currentUser={currentUser}
           onLogout={handleLogout}
           onUnauthenticated={handleUnauthenticated}
         />

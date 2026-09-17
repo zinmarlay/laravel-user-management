@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import UserDeleteDialog from "../components/users/UserDeleteDialog";
 import UserEditDialog from "../components/users/UserEditDialog";
+import UserAuthorizationDialog from "../components/users/UserAuthorizationDialog";
 import UserListPagination from "../components/users/UserListPagination";
 import {
     EmptyState,
@@ -20,7 +22,55 @@ import { logoutUser } from "../services/authApi";
 import { fetchUsers } from "../services/usersApi";
 import "../App.css";
 
-function UserListPage({ onLogout, onUnauthenticated }) {
+function canPerformAction(action, currentUser, targetUser) {
+    if (!currentUser || !targetUser) {
+        return false;
+    }
+
+    if (currentUser.role === "admin") {
+        return true;
+    }
+
+    return (
+        action === "edit" &&
+        currentUser.role === "user" &&
+        currentUser.id !== null &&
+        currentUser.id !== undefined &&
+        targetUser.id !== null &&
+        targetUser.id !== undefined &&
+        String(currentUser.id) === String(targetUser.id)
+    );
+}
+
+function getAuthorizationMessage(action, currentUser) {
+    if (!currentUser || !["admin", "user"].includes(currentUser.role)) {
+        return "User permissions are unavailable. Please sign in again.";
+    }
+
+    if (action === "edit") {
+        return "You can edit your own profile, but only administrators can edit another user.";
+    }
+
+    if (action === "delete") {
+        return "Only administrators can delete users.";
+    }
+
+    return "Only administrators can change user roles.";
+}
+
+function getRoleLabel(role) {
+    if (role === "admin") {
+        return "Admin";
+    }
+
+    if (role === "user") {
+        return "User";
+    }
+
+    return "Role unavailable";
+}
+
+function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState({ search: "", page: 1 });
     const [result, setResult] = useState(null);
@@ -33,6 +83,8 @@ function UserListPage({ onLogout, onUnauthenticated }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [roleOpen, setRoleOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
+    const [authorizationAlert, setAuthorizationAlert] = useState(null);
+    const authorizationTrigger = useRef(null);
 
     const retry = useCallback(() => {
         setLoading(true);
@@ -53,6 +105,28 @@ function UserListPage({ onLogout, onUnauthenticated }) {
     function openRoleChange(user) {
         setSelectedUser(user);
         setRoleOpen(true);
+    }
+
+    function handleActionAttempt(action, user, openAction) {
+        if (!canPerformAction(action, currentUser, user)) {
+            authorizationTrigger.current = document.activeElement;
+            setAuthorizationAlert({
+                message: getAuthorizationMessage(action, currentUser),
+            });
+            return;
+        }
+
+        openAction(user);
+    }
+
+    function closeAuthorizationDialog() {
+        const trigger = authorizationTrigger.current;
+        authorizationTrigger.current = null;
+        setAuthorizationAlert(null);
+
+        if (trigger && typeof trigger.focus === "function") {
+            window.requestAnimationFrame(() => trigger.focus());
+        }
     }
 
     function closeEdit() {
@@ -177,18 +251,50 @@ function UserListPage({ onLogout, onUnauthenticated }) {
     const showInitialLoading = loading && !result;
     const showTable = result && hasRows;
     const showInlineError = Boolean(error && result);
+    const currentUserName = currentUser?.name?.trim() || "Signed-in user";
+    const currentUserEmail = currentUser?.email?.trim() || "Identity unavailable";
+    const currentUserRole = getRoleLabel(currentUser?.role);
 
     return (
         <main className="user-list-page">
             <Box className="user-list-page__content">
                 <Box className="user-list-page__header">
-                    <Typography
-                        className="user-list-page__title"
-                        component="h1"
-                        variant="h3"
-                    >
-                        Users
-                    </Typography>
+                    <Box className="user-list-page__header-heading">
+                        <Typography
+                            className="user-list-page__title"
+                            component="h1"
+                            variant="h3"
+                        >
+                            Users
+                        </Typography>
+                        <Box
+                            className="user-list-page__identity"
+                            aria-label={
+                                currentUser
+                                    ? "Current user"
+                                    : "Current user unavailable"
+                            }
+                        >
+                            <Typography
+                                className="user-list-page__identity-name"
+                                title={currentUser?.name || undefined}
+                            >
+                                {currentUserName}
+                            </Typography>
+                            <Typography
+                                className="user-list-page__identity-email"
+                                title={currentUser?.email || undefined}
+                            >
+                                {currentUserEmail}
+                            </Typography>
+                            <Chip
+                                className="user-list-page__identity-role"
+                                label={currentUserRole}
+                                size="small"
+                                variant="outlined"
+                            />
+                        </Box>
+                    </Box>
                     <Button
                         variant="outlined"
                         onClick={handleLogout}
@@ -245,9 +351,19 @@ function UserListPage({ onLogout, onUnauthenticated }) {
                         <Box className="user-list-page__table-wrap">
                             <UserTable
                                 users={result.rows}
-                                onEdit={openEdit}
-                                onDelete={openDelete}
-                                onChangeRole={openRoleChange}
+                                onEdit={(user) =>
+                                    handleActionAttempt("edit", user, openEdit)
+                                }
+                                onDelete={(user) =>
+                                    handleActionAttempt("delete", user, openDelete)
+                                }
+                                onChangeRole={(user) =>
+                                    handleActionAttempt(
+                                        "role",
+                                        user,
+                                        openRoleChange,
+                                    )
+                                }
                                 actionsDisabled={Boolean(selectedUser)}
                             />
                             {loading && <LoadingState overlay />}
@@ -264,6 +380,11 @@ function UserListPage({ onLogout, onUnauthenticated }) {
                     )}
                 </Paper>
             </Box>
+            <UserAuthorizationDialog
+                open={Boolean(authorizationAlert)}
+                message={authorizationAlert?.message || ""}
+                onClose={closeAuthorizationDialog}
+            />
             <UserEditDialog
                 open={editOpen}
                 user={selectedUser}

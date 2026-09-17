@@ -95,11 +95,49 @@
   margin-bottom: 28px;
 }
 
+.user-list-page__header-heading {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .user-list-page__title {
   margin-bottom: 0 !important;
   color: #172033;
   font-weight: 700 !important;
   letter-spacing: -0.03em !important;
+}
+
+.user-list-page__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #59657a;
+}
+
+.user-list-page__identity-name,
+.user-list-page__identity-email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.user-list-page__identity-name {
+  max-width: 240px;
+  color: #172033;
+  font-weight: 700 !important;
+}
+
+.user-list-page__identity-email {
+  max-width: 320px;
+}
+
+.user-list-page__identity-role {
+  flex: 0 0 auto;
 }
 
 .user-list-page__surface {
@@ -190,7 +228,16 @@
 
 .user-list-page__actions-cell {
   min-width: 300px;
-  white-space: nowrap;
+}
+
+.user-list-page__action-buttons {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.user-list-page__action-buttons .MuiButton-root {
+  min-width: 0;
+  text-transform: none;
 }
 
 .user-list-page__loading-overlay {
@@ -251,7 +298,24 @@
 
   .user-list-page__header {
     align-items: flex-start;
+    flex-wrap: wrap;
     margin-bottom: 20px;
+  }
+
+  .user-list-page__header-heading {
+    flex-basis: 100%;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .user-list-page__identity {
+    align-items: flex-start;
+    flex: 1 1 100%;
+  }
+
+  .user-list-page__identity-name,
+  .user-list-page__identity-email {
+    max-width: 100%;
   }
 
   .user-list-page__search {
@@ -338,6 +402,14 @@
 
   .user-list-page__name-cell {
     color: #f3f6fc;
+  }
+
+  .user-list-page__identity-name {
+    color: #f3f6fc;
+  }
+
+  .user-list-page__identity {
+    color: #aab7ca;
   }
 
   .user-list-page__loading-overlay {
