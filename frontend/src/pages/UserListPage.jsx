@@ -18,7 +18,7 @@ import UserTable from "../components/users/UserTable";
 import { fetchUsers } from "../services/usersApi";
 import "../App.css";
 
-function UserListPage() {
+function UserListPage({ onUnauthenticated }) {
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState({ search: "", page: 1 });
     const [result, setResult] = useState(null);
@@ -118,7 +118,8 @@ function UserListPage() {
                 }
 
                 if (requestError.code === "unauthenticated") {
-                    setResult(null);
+                    onUnauthenticated();
+                    return;
                 }
                 setError(requestError);
             })
@@ -129,7 +130,7 @@ function UserListPage() {
             });
 
         return () => controller.abort();
-    }, [query, retryKey]);
+    }, [onUnauthenticated, query, retryKey]);
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -236,6 +237,7 @@ function UserListPage() {
                 open={editOpen}
                 user={selectedUser}
                 onClose={closeEdit}
+                onUnauthenticated={onUnauthenticated}
                 onSaved={async () => {
                     closeEdit();
                     refreshList();
@@ -245,12 +247,14 @@ function UserListPage() {
                 open={deleteOpen}
                 user={selectedUser}
                 onClose={closeDelete}
+                onUnauthenticated={onUnauthenticated}
                 onDeleted={handleDeleteSuccess}
             />
             <UserRoleDialog
                 open={roleOpen}
                 user={selectedUser}
                 onClose={closeRoleChange}
+                onUnauthenticated={onUnauthenticated}
                 onChanged={async () => {
                     closeRoleChange();
                     refreshList();
