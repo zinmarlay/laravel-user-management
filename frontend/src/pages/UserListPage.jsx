@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import UserDeleteDialog from "../components/users/UserDeleteDialog";
@@ -15,10 +16,11 @@ import {
 import UserSearchForm from "../components/users/UserSearchForm";
 import UserRoleDialog from "../components/users/UserRoleDialog";
 import UserTable from "../components/users/UserTable";
+import { logoutUser } from "../services/authApi";
 import { fetchUsers } from "../services/usersApi";
 import "../App.css";
 
-function UserListPage({ onUnauthenticated }) {
+function UserListPage({ onLogout, onUnauthenticated }) {
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState({ search: "", page: 1 });
     const [result, setResult] = useState(null);
@@ -30,6 +32,7 @@ function UserListPage({ onUnauthenticated }) {
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [roleOpen, setRoleOpen] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
 
     const retry = useCallback(() => {
         setLoading(true);
@@ -71,6 +74,22 @@ function UserListPage({ onUnauthenticated }) {
         setLoading(true);
         setError(null);
         setRetryKey((current) => current + 1);
+    }
+
+    async function handleLogout() {
+        if (loggingOut) {
+            return;
+        }
+
+        setLoggingOut(true);
+
+        try {
+            await logoutUser();
+        } catch {
+            // Local sign-out still completes when the server cannot confirm logout.
+        } finally {
+            onLogout();
+        }
     }
 
     function handleDeleteSuccess() {
@@ -162,13 +181,25 @@ function UserListPage({ onUnauthenticated }) {
     return (
         <main className="user-list-page">
             <Box className="user-list-page__content">
-                <Typography
-                    className="user-list-page__title"
-                    component="h1"
-                    variant="h3"
-                >
-                    Users
-                </Typography>
+                <Box className="user-list-page__header">
+                    <Typography
+                        className="user-list-page__title"
+                        component="h1"
+                        variant="h3"
+                    >
+                        Users
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        startIcon={
+                            loggingOut ? <CircularProgress size={16} /> : undefined
+                        }
+                    >
+                        {loggingOut ? "Logging out…" : "Logout"}
+                    </Button>
+                </Box>
 
                 <Paper className="user-list-page__surface" elevation={0}>
                     <UserSearchForm

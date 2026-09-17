@@ -87,8 +87,16 @@
   margin: 0 auto;
 }
 
+.user-list-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
 .user-list-page__title {
-  margin-bottom: 28px !important;
+  margin-bottom: 0 !important;
   color: #172033;
   font-weight: 700 !important;
   letter-spacing: -0.03em !important;
@@ -237,8 +245,13 @@
   }
 
   .user-list-page__title {
-    margin-bottom: 20px !important;
+    margin-bottom: 0 !important;
     font-size: 2rem !important;
+  }
+
+  .user-list-page__header {
+    align-items: flex-start;
+    margin-bottom: 20px;
   }
 
   .user-list-page__search {

@@ -34,11 +34,24 @@ function App() {
     setAuthenticated(false)
   }, [])
 
+  const handleLogout = useCallback(() => {
+    try {
+      window.localStorage.removeItem('token')
+    } catch {
+      // The in-memory auth state still prevents access to protected content.
+    }
+
+    setAuthenticated(false)
+  }, [])
+
   return (
     <>
       <CssBaseline />
       {authenticated ? (
-        <UserListPage onUnauthenticated={handleUnauthenticated} />
+        <UserListPage
+          onLogout={handleLogout}
+          onUnauthenticated={handleUnauthenticated}
+        />
       ) : (
         <LoginPage onAuthenticated={handleAuthenticated} />
       )}
