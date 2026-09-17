@@ -1,3 +1,80 @@
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 32px 24px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(68, 92, 170, 0.16), transparent 34%),
+    linear-gradient(135deg, #f7f9fd 0%, #edf1f8 100%);
+}
+
+.login-page__content {
+  width: min(100%, 460px);
+}
+
+.login-page__card {
+  padding: 44px;
+  border: 1px solid #e1e7f0;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(39, 55, 91, 0.14) !important;
+}
+
+.login-page__brand-mark {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #4158a6, #7187d8);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.login-page__brand {
+  margin-bottom: 20px !important;
+  color: #53617a;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+}
+
+.login-page__title {
+  margin-bottom: 10px !important;
+  color: #172033;
+  font-weight: 750 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.login-page__description {
+  margin-bottom: 28px !important;
+  color: #65728a;
+  line-height: 1.6 !important;
+}
+
+.login-page__submit {
+  min-height: 52px;
+  margin-top: 4px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 20px rgba(65, 88, 166, 0.2) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+}
+
+.login-page__footer {
+  margin-top: 18px !important;
+  color: #76829a;
+  font-size: 0.8rem !important;
+  text-align: center;
+}
+
 .user-list-page {
   min-height: 100vh;
   padding: 48px 24px 64px;
@@ -103,6 +180,11 @@
   overflow-wrap: anywhere;
 }
 
+.user-list-page__actions-cell {
+  min-width: 300px;
+  white-space: nowrap;
+}
+
 .user-list-page__loading-overlay {
   position: absolute;
   inset: 0;
@@ -135,6 +217,21 @@
 }
 
 @media (max-width: 640px) {
+  .login-page {
+    align-items: flex-start;
+    padding: 20px 12px;
+  }
+
+  .login-page__card {
+    margin-top: 8vh;
+    padding: 32px 22px;
+    border-radius: 20px !important;
+  }
+
+  .login-page__title {
+    font-size: 2.35rem !important;
+  }
+
   .user-list-page {
     padding: 28px 12px 40px;
   }
@@ -162,12 +259,38 @@
     padding: 14px 16px;
   }
 
+  .user-list-page__actions-cell {
+    min-width: 280px;
+  }
+
   .user-list-page__pagination {
     padding: 20px 16px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
+  .login-page {
+    background:
+      radial-gradient(circle at 12% 12%, rgba(89, 111, 201, 0.22), transparent 34%),
+      linear-gradient(135deg, #111827 0%, #182236 100%);
+  }
+
+  .login-page__card {
+    border-color: #2d3748;
+    background: rgba(27, 36, 51, 0.96);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .login-page__brand,
+  .login-page__description,
+  .login-page__footer {
+    color: #aab7ca;
+  }
+
+  .login-page__title {
+    color: #f3f6fc;
+  }
+
   .user-list-page {
     background: #111827;
   }
