@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import CssBaseline from '@mui/material/CssBaseline'
 import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import UserListPage from './pages/UserListPage'
 
 function hasStoredToken() {
@@ -27,6 +28,7 @@ function getSafeCurrentUser(user) {
 function App() {
   const [authenticated, setAuthenticated] = useState(hasStoredToken)
   const [currentUser, setCurrentUser] = useState(null)
+  const [authScreen, setAuthScreen] = useState('login')
 
   const handleAuthenticated = useCallback((response) => {
     try {
@@ -37,6 +39,7 @@ function App() {
 
     setAuthenticated(true)
     setCurrentUser(getSafeCurrentUser(response?.user))
+    setAuthScreen('login')
   }, [])
 
   const handleUnauthenticated = useCallback(() => {
@@ -48,6 +51,7 @@ function App() {
 
     setCurrentUser(null)
     setAuthenticated(false)
+    setAuthScreen('login')
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -59,6 +63,15 @@ function App() {
 
     setCurrentUser(null)
     setAuthenticated(false)
+    setAuthScreen('login')
+  }, [])
+
+  const handleShowRegister = useCallback(() => {
+    setAuthScreen('register')
+  }, [])
+
+  const handleShowLogin = useCallback(() => {
+    setAuthScreen('login')
   }, [])
 
   return (
@@ -71,7 +84,17 @@ function App() {
           onUnauthenticated={handleUnauthenticated}
         />
       ) : (
-        <LoginPage onAuthenticated={handleAuthenticated} />
+        authScreen === 'register' ? (
+          <RegisterPage
+            onAuthenticated={handleAuthenticated}
+            onLogin={handleShowLogin}
+          />
+        ) : (
+          <LoginPage
+            onAuthenticated={handleAuthenticated}
+            onRegister={handleShowRegister}
+          />
+        )
       )}
     </>
   )

@@ -2,12 +2,12 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import LoginForm from "../components/auth/LoginForm";
+import RegisterForm from "../components/auth/RegisterForm";
 import "../App.css";
 
-function LoginPage({ onAuthenticated, onRegister }) {
+function RegisterPage({ onAuthenticated, onLogin }) {
     return (
-        <main className="login-page">
+        <main className="login-page register-page">
             <Box className="login-page__content">
                 <Paper className="login-page__card" elevation={0}>
                     <Box className="login-page__brand-mark" aria-hidden="true">
@@ -21,20 +21,20 @@ function LoginPage({ onAuthenticated, onRegister }) {
                         component="h1"
                         variant="h3"
                     >
-                        Sign in
+                        Create account
                     </Typography>
                     <Typography className="login-page__description">
-                        Sign in to securely manage your users and account access.
+                        Register a secure account to manage your users and access.
                     </Typography>
-                    <LoginForm onAuthenticated={onAuthenticated} />
+                    <RegisterForm onAuthenticated={onAuthenticated} />
                     <Typography className="login-page__switch" component="p">
-                        Don&apos;t have an account?{" "}
+                        Already have an account?{" "}
                         <Button
                             type="button"
                             className="login-page__switch-button"
-                            onClick={onRegister}
+                            onClick={onLogin}
                         >
-                            Register
+                            Sign in
                         </Button>
                     </Typography>
                 </Paper>
@@ -46,4 +46,4 @@ function LoginPage({ onAuthenticated, onRegister }) {
     );
 }
 
-export default LoginPage;
+export default RegisterPage;

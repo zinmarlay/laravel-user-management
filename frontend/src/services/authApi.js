@@ -21,6 +21,10 @@ function getStoredToken() {
     }
 }
 
+function getRegisterEndpoint() {
+    return API_BASE_URL + "/api/register";
+}
+
 function getLoginError(status, payload) {
     if (status === 401) {
         return new UsersApiError("Invalid email or password.", {
@@ -59,6 +63,35 @@ function getLogoutError(status, payload) {
     });
 }
 
+function getRegisterError(status, payload) {
+    if (status === 422) {
+        return new UsersApiError(
+            "Please correct the highlighted fields and try again.",
+            { status, code: "validation", payload },
+        );
+    }
+
+    if (status === 401 || status === 403) {
+        return new UsersApiError(
+            "Registration could not be completed. Please try again.",
+            { status, code: "request-failed", payload },
+        );
+    }
+
+    if (status === 404) {
+        return new UsersApiError(
+            "Registration is currently unavailable. Please try again later.",
+            { status, code: "request-failed", payload },
+        );
+    }
+
+    return new UsersApiError("Registration failed. Please try again.", {
+        status,
+        code: "request-failed",
+        payload,
+    });
+}
+
 async function parseLoginPayload(response) {
     if (response.status === 204) {
         return null;
@@ -72,6 +105,18 @@ async function parseLoginPayload(response) {
 }
 
 async function parseLogoutPayload(response) {
+    if (response.status === 204) {
+        return null;
+    }
+
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+async function parseRegisterPayload(response) {
     if (response.status === 204) {
         return null;
     }
@@ -166,6 +211,54 @@ export async function logoutUser(signal) {
     if (payload !== null && (typeof payload !== "object" || Array.isArray(payload))) {
         throw new UsersApiError(
             "The server returned an invalid sign-out response. Please try again.",
+            { status: response.status, code: "invalid-response", payload },
+        );
+    }
+
+    return payload;
+}
+
+export async function registerUser(formData, signal) {
+    let response;
+
+    try {
+        response = await fetch(getRegisterEndpoint(), {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+            },
+            body: formData,
+            signal,
+        });
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw error;
+        }
+
+        throw new UsersApiError(
+            "We could not connect to the server. Please try again.",
+            { code: "network" },
+        );
+    }
+
+    const payload = await parseRegisterPayload(response);
+
+    if (!response.ok) {
+        throw getRegisterError(response.status, payload);
+    }
+
+    if (
+        !payload ||
+        typeof payload !== "object" ||
+        Array.isArray(payload) ||
+        typeof payload.token !== "string" ||
+        !payload.token.trim() ||
+        !payload.user ||
+        typeof payload.user !== "object" ||
+        Array.isArray(payload.user)
+    ) {
+        throw new UsersApiError(
+            "The server returned an invalid registration response. Please try again.",
             { status: response.status, code: "invalid-response", payload },
         );
     }

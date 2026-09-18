@@ -75,6 +75,50 @@
   text-align: center;
 }
 
+.login-page__switch {
+  margin-top: 20px !important;
+  color: #65728a;
+  text-align: center;
+}
+
+.login-page__switch-button {
+  min-width: 0 !important;
+  padding: 0 4px !important;
+  text-transform: none !important;
+  vertical-align: baseline;
+}
+
+.register-form__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-form__photo-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.register-form__photo-preview {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid #dfe5ef;
+  border-radius: 12px;
+}
+
+.register-form__photo-filename {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #59657a;
+}
+
+.register-form__photo-help {
+  color: #76829a;
+}
+
 .user-list-page {
   min-height: 100vh;
   padding: 48px 24px 64px;

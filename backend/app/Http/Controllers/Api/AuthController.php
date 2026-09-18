@@ -3,56 +3,77 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class AuthController extends Controller
 {
     /**
      * Register လုပ်ပြီး token ပြန်ပေး
      *
-     * @param Request $request
+     * @param  Request  $request
      * @return void
      */
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-        ]);
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-        $token = $user->createToken('api-token')->plainTextToken;
+        $validated = $request->validated();
+        $photoPath = null;
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'token' => $token,
+        try {
+            return DB::transaction(function () use ($request, $validated, &$photoPath) {
+                if ($request->hasFile('photo')) {
+                    $photoPath = $request->file('photo')->store('profile-photos', 'public');
 
-        ], 201);
+                    if (! is_string($photoPath) || $photoPath === '') {
+                        throw new \RuntimeException('The profile photo could not be stored.');
+                    }
+                }
+
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => Hash::make($validated['password']),
+                    'address' => $validated['address'] ?? null,
+                    'photo' => $photoPath,
+                ]);
+                $token = $user->createToken('api-token')->plainTextToken;
+
+                return response()->json([
+                    'message' => 'User registered successfully',
+                    'user' => UserResource::make($user),
+                    'token' => $token,
+                ], 201);
+            });
+        } catch (Throwable $exception) {
+            if ($photoPath !== null) {
+                Storage::disk('public')->delete($photoPath);
+            }
+
+            throw $exception;
+        }
     }
 
     /**
      * Login လုပ်ပြီး token ပြန်ပေး
      *
-     * @param Request $request
      * @return void
      */
     public function login(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'message' => 'Invalid email and password',
             ], 401);
@@ -70,7 +91,6 @@ class AuthController extends Controller
     /**
      *  auth:sanctum ကနေ လက်ရှိ login ဝင်ထားတဲ့ User ကို ပြန်ပေးတာပါ။
      *
-     * @param Request $request
      * @return void
      */
     public function me(Request $request)
@@ -81,7 +101,6 @@ class AuthController extends Controller
     /**
      * Login user ၇ဲ့ tokenကိုဖျက်ပြီးlogout လုပ်
      *
-     * @param Request $request
      * @return void
      */
     public function logout(Request $request)
