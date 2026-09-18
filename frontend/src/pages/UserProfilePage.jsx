@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import ChangePasswordDialog from "../components/users/ChangePasswordDialog";
 import UserAvatar from "../components/users/UserAvatar";
 import UserEditDialog from "../components/users/UserEditDialog";
 import { fetchUser } from "../services/usersApi";
@@ -71,6 +72,7 @@ function UserProfilePage({
     const [error, setError] = useState(null);
     const [retryKey, setRetryKey] = useState(0);
     const [editOpen, setEditOpen] = useState(false);
+    const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
     useEffect(() => {
@@ -131,7 +133,17 @@ function UserProfilePage({
         onCurrentUserUpdated(updatedProfile);
     }
 
+    function handlePasswordChanged() {
+        setChangePasswordOpen(false);
+        onUnauthenticated("Password changed successfully. Please sign in again.");
+    }
+
     const canEdit = profile && canViewProfile(currentUser, profile.id);
+    const canChangePassword =
+        profile &&
+        currentUser?.id !== null &&
+        currentUser?.id !== undefined &&
+        String(currentUser.id) === String(profile.id);
     const displayAddress = profile?.address?.trim() || "—";
     const displayName = profile?.name?.trim() || "User";
     const displayEmail = profile?.email?.trim() || "Email unavailable";
@@ -257,6 +269,14 @@ function UserProfilePage({
                         </Box>
 
                         <Box className="user-profile-page__actions">
+                            {canChangePassword && (
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => setChangePasswordOpen(true)}
+                                >
+                                    Change Password
+                                </Button>
+                            )}
                             {canEdit && (
                                 <Button
                                     variant="contained"
@@ -276,6 +296,12 @@ function UserProfilePage({
                 onClose={() => setEditOpen(false)}
                 onUnauthenticated={onUnauthenticated}
                 onSaved={handleSaved}
+            />
+            <ChangePasswordDialog
+                open={changePasswordOpen}
+                onClose={() => setChangePasswordOpen(false)}
+                onChanged={handlePasswordChanged}
+                onUnauthenticated={onUnauthenticated}
             />
         </main>
     );

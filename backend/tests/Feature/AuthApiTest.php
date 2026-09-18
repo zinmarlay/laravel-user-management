@@ -281,4 +281,222 @@ class AuthApiTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    public function test_authenticated_user_can_change_own_password_and_revoke_all_tokens(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'password-user@example.com',
+            'password' => 'old-password',
+        ]);
+        $currentToken = $user->createToken('current-session');
+        $otherToken = $user->createToken('other-session');
+
+        $response = $this->withToken($currentToken->plainTextToken)->postJson(
+            'api/change-password',
+            [
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ],
+        );
+
+        $response->assertOk();
+        $response->assertJson([
+            'message' => 'Password changed successfully',
+        ]);
+        $response->assertJsonMissingPath('password');
+        $response->assertJsonMissingPath('password_confirmation');
+        $response->assertJsonMissingPath('token');
+        $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+        $this->assertFalse(Hash::check('old-password', $user->fresh()->password));
+        $this->assertSame(0, $user->fresh()->tokens()->count());
+        $this->assertNotSame($currentToken->accessToken->id, $otherToken->accessToken->id);
+
+        $oldPasswordResponse = $this->postJson('api/login', [
+            'email' => 'password-user@example.com',
+            'password' => 'old-password',
+        ]);
+        $oldPasswordResponse->assertUnauthorized();
+
+        $newPasswordResponse = $this->postJson('api/login', [
+            'email' => 'password-user@example.com',
+            'password' => 'new-password',
+        ]);
+        $newPasswordResponse->assertOk();
+    }
+
+    public function test_guest_cannot_change_password(): void
+    {
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_change_password_rejects_incorrect_current_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'incorrect-current@example.com',
+            'password' => 'old-password',
+        ]);
+        $token = $user->createToken('password-session');
+
+        $response = $this->withToken($token->plainTextToken)->postJson(
+            'api/change-password',
+            [
+                'current_password' => 'wrong-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ],
+        );
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['current_password']);
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+        $this->assertSame(1, $user->fresh()->tokens()->count());
+    }
+
+    public function test_change_password_requires_current_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'missing-current@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['current_password']);
+    }
+
+    public function test_change_password_requires_new_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'missing-new@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_change_password_requires_minimum_new_password_length(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'short-new@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password' => 'short',
+            'password_confirmation' => 'short',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_change_password_requires_matching_confirmation(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'mismatch-confirmation@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password' => 'new-password',
+            'password_confirmation' => 'different-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['password_confirmation']);
+    }
+
+    public function test_change_password_requires_confirmation(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'missing-confirmation@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password' => 'new-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['password_confirmation']);
+    }
+
+    public function test_change_password_rejects_reusing_current_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'reused-password@example.com',
+            'password' => 'old-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'current_password' => 'old-password',
+            'password' => 'old-password',
+            'password_confirmation' => 'old-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['password']);
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    public function test_change_password_rejects_a_target_user_id(): void
+    {
+        $user = User::create([
+            'name' => 'Password User',
+            'email' => 'target-id-user@example.com',
+            'password' => 'old-password',
+        ]);
+        $target = User::create([
+            'name' => 'Target User',
+            'email' => 'target-id@example.com',
+            'password' => 'target-password',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('api/change-password', [
+            'user_id' => $target->id,
+            'current_password' => 'old-password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['user_id']);
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('target-password', $target->fresh()->password));
+    }
 }

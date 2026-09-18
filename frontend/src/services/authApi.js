@@ -13,6 +13,10 @@ function getLogoutEndpoint() {
     return `${API_BASE_URL}/api/logout`;
 }
 
+function getChangePasswordEndpoint() {
+    return `${API_BASE_URL}/api/change-password`;
+}
+
 function getStoredToken() {
     try {
         return window.localStorage.getItem("token") || "";
@@ -92,6 +96,42 @@ function getRegisterError(status, payload) {
     });
 }
 
+function getChangePasswordError(status, payload) {
+    if (status === 401) {
+        return new UsersApiError(
+            "Your session has expired. Please sign in again.",
+            { status, code: "unauthenticated", payload },
+        );
+    }
+
+    if (status === 403) {
+        return new UsersApiError(
+            "You are not authorized to change your password.",
+            { status, code: "forbidden", payload },
+        );
+    }
+
+    if (status === 422) {
+        return new UsersApiError(
+            "Please correct the highlighted fields and try again.",
+            { status, code: "validation", payload },
+        );
+    }
+
+    if (status === 404) {
+        return new UsersApiError(
+            "Password change is currently unavailable. Please try again later.",
+            { status, code: "request-failed", payload },
+        );
+    }
+
+    return new UsersApiError("Password change failed. Please try again.", {
+        status,
+        code: "request-failed",
+        payload,
+    });
+}
+
 async function parseLoginPayload(response) {
     if (response.status === 204) {
         return null;
@@ -117,6 +157,18 @@ async function parseLogoutPayload(response) {
 }
 
 async function parseRegisterPayload(response) {
+    if (response.status === 204) {
+        return null;
+    }
+
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+async function parseChangePasswordPayload(response) {
     if (response.status === 204) {
         return null;
     }
@@ -216,6 +268,68 @@ export async function logoutUser(signal) {
     }
 
     return payload;
+}
+
+export async function changePassword(
+    currentPassword,
+    newPassword,
+    passwordConfirmation,
+    signal,
+) {
+    const token = getStoredToken();
+    const headers = {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+    };
+
+    if (token.trim()) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    let response;
+
+    try {
+        response = await fetch(getChangePasswordEndpoint(), {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                current_password: currentPassword,
+                password: newPassword,
+                password_confirmation: passwordConfirmation,
+            }),
+            signal,
+        });
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw error;
+        }
+
+        throw new UsersApiError(
+            "We could not connect to the server. Please try again.",
+            { code: "network" },
+        );
+    }
+
+    const payload = await parseChangePasswordPayload(response);
+
+    if (!response.ok) {
+        throw getChangePasswordError(response.status, payload);
+    }
+
+    if (
+        !payload ||
+        typeof payload !== "object" ||
+        Array.isArray(payload) ||
+        typeof payload.message !== "string" ||
+        !payload.message.trim()
+    ) {
+        throw new UsersApiError(
+            "The server returned an invalid password-change response. Please try again.",
+            { status: response.status, code: "invalid-response", payload },
+        );
+    }
+
+    return { message: payload.message };
 }
 
 export async function registerUser(formData, signal) {

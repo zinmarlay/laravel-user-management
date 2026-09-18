@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
@@ -109,6 +110,53 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logout successful',
+        ]);
+    }
+
+    /**
+     * Change the authenticated user's password and revoke all sessions.
+     */
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $validated = $request->validated();
+        $user = $request->user();
+
+        if (! $user || ! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'The current password is incorrect.',
+                'errors' => [
+                    'current_password' => ['The current password is incorrect.'],
+                ],
+            ], 422);
+        }
+
+        if (Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Choose a password different from your current password.',
+                'errors' => [
+                    'password' => [
+                        'Choose a password different from your current password.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($user, $validated): void {
+                $user->forceFill([
+                    'password' => Hash::make($validated['password']),
+                ])->save();
+
+                $user->tokens()->delete();
+            });
+        } catch (Throwable $exception) {
+            return response()->json([
+                'message' => 'Password change failed. Please try again.',
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'Password changed successfully',
         ]);
     }
 }

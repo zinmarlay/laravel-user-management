@@ -33,6 +33,7 @@ function App() {
   const [activePage, setActivePage] = useState('users')
   const [profileUserId, setProfileUserId] = useState(null)
   const [userListRefreshKey, setUserListRefreshKey] = useState(0)
+  const [authNotice, setAuthNotice] = useState('')
 
   const handleAuthenticated = useCallback((response) => {
     try {
@@ -44,11 +45,12 @@ function App() {
     setAuthenticated(true)
     setCurrentUser(getSafeCurrentUser(response?.user))
     setAuthScreen('login')
+    setAuthNotice('')
     setActivePage('users')
     setProfileUserId(null)
   }, [])
 
-  const handleUnauthenticated = useCallback(() => {
+  const handleUnauthenticated = useCallback((notice = '') => {
     try {
       window.localStorage.removeItem('token')
     } catch {
@@ -58,6 +60,7 @@ function App() {
     setCurrentUser(null)
     setAuthenticated(false)
     setAuthScreen('login')
+    setAuthNotice(typeof notice === 'string' ? notice : '')
     setActivePage('users')
     setProfileUserId(null)
   }, [])
@@ -72,6 +75,7 @@ function App() {
     setCurrentUser(null)
     setAuthenticated(false)
     setAuthScreen('login')
+    setAuthNotice('')
     setActivePage('users')
     setProfileUserId(null)
   }, [])
@@ -143,6 +147,7 @@ function App() {
           <LoginPage
             onAuthenticated={handleAuthenticated}
             onRegister={handleShowRegister}
+            notice={authNotice}
           />
         )
       )}
