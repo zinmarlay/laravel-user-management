@@ -14,7 +14,6 @@ function getInitialDraft(user) {
     return {
         name: user?.name || "",
         email: user?.email || "",
-        password: "",
         address: user?.address || "",
     };
 }
@@ -48,10 +47,6 @@ function validateDraft(draft) {
         errors.email = "Email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         errors.email = "Enter a valid email address.";
-    }
-
-    if (draft.password && draft.password.length < 8) {
-        errors.password = "Password must be at least 8 characters.";
     }
 
     return errors;
@@ -109,10 +104,6 @@ function UserEditDialog({
             email: draft.email.trim(),
             address: draft.address.trim() || null,
         };
-
-        if (draft.password) {
-            payload.password = draft.password;
-        }
 
         setSaving(true);
         setFieldErrors({});
@@ -190,21 +181,6 @@ function UserEditDialog({
                             }
                             error={Boolean(fieldErrors.email)}
                             helperText={fieldErrors.email || " "}
-                            disabled={saving}
-                        />
-                        <TextField
-                            fullWidth
-                            type="password"
-                            label="Password"
-                            value={draft.password}
-                            onChange={(event) =>
-                                updateField("password", event.target.value)
-                            }
-                            error={Boolean(fieldErrors.password)}
-                            helperText={
-                                fieldErrors.password ||
-                                "Leave blank to keep the current password."
-                            }
                             disabled={saving}
                         />
                         <TextField
