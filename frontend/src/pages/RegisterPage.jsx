@@ -3,43 +3,50 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import RegisterForm from "../components/auth/RegisterForm";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
+import { useTranslation } from "../i18n/LanguageContext";
 import "../App.css";
 
 function RegisterPage({ onAuthenticated, onLogin }) {
+    const { t } = useTranslation();
+
     return (
         <main className="login-page register-page">
+            <Box className="login-page__language">
+                <LanguageSwitcher />
+            </Box>
             <Box className="login-page__content">
                 <Paper className="login-page__card" elevation={0}>
                     <Box className="login-page__brand-mark" aria-hidden="true">
                         UM
                     </Box>
                     <Typography className="login-page__brand" component="p">
-                        User Management
+                        {t("auth.brand")}
                     </Typography>
                     <Typography
                         className="login-page__title"
                         component="h1"
                         variant="h3"
                     >
-                        Create account
+                        {t("auth.registerTitle")}
                     </Typography>
                     <Typography className="login-page__description">
-                        Register a secure account to manage your users and access.
+                        {t("auth.registerDescription")}
                     </Typography>
                     <RegisterForm onAuthenticated={onAuthenticated} />
                     <Typography className="login-page__switch" component="p">
-                        Already have an account?{" "}
+                        {t("auth.loginPrompt")}{" "}
                         <Button
                             type="button"
                             className="login-page__switch-button"
                             onClick={onLogin}
                         >
-                            Sign in
+                            {t("auth.signInLink")}
                         </Button>
                     </Typography>
                 </Paper>
                 <Typography className="login-page__footer" component="p">
-                    Secure access to your user management workspace
+                    {t("auth.footer")}
                 </Typography>
             </Box>
         </main>

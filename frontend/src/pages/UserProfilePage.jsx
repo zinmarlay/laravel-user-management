@@ -5,10 +5,12 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
 import ChangePasswordDialog from "../components/users/ChangePasswordDialog";
 import UserAvatar from "../components/users/UserAvatar";
 import UserEditDialog from "../components/users/UserEditDialog";
 import { fetchUser } from "../services/usersApi";
+import { useTranslation } from "../i18n/LanguageContext";
 import "../App.css";
 
 function canViewProfile(currentUser, userId) {
@@ -28,36 +30,36 @@ function canViewProfile(currentUser, userId) {
     );
 }
 
-function getRoleLabel(role) {
+function getRoleLabel(role, t) {
     if (role === "admin") {
-        return "Admin";
+        return t("roles.admin");
     }
 
     if (role === "user") {
-        return "User";
+        return t("roles.user");
     }
 
-    return "Role unavailable";
+    return t("common.roleUnavailable");
 }
 
-function getSafeError(error) {
+function getSafeError(error, t) {
     if (error?.code === "forbidden") {
-        return "You are not authorized to view this profile.";
+        return t("errors.profileForbidden");
     }
 
     if (error?.code === "not-found") {
-        return "This user could not be found.";
+        return t("errors.profileNotFound");
     }
 
     if (error?.code === "network") {
-        return "We could not connect to the server. Check your connection and try again.";
+        return t("errors.network");
     }
 
     if (error?.code === "invalid-response") {
-        return "The profile response was not valid. Please try again.";
+        return t("errors.profileInvalid");
     }
 
-    return "We could not load this profile. Please try again.";
+    return t("errors.loadProfile");
 }
 
 function UserProfilePage({
@@ -67,6 +69,7 @@ function UserProfilePage({
     onCurrentUserUpdated,
     onUnauthenticated,
 }) {
+    const { t } = useTranslation();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -85,7 +88,7 @@ function UserProfilePage({
             setLoading(false);
             setError({
                 code: "forbidden",
-                message: "You are not authorized to view this profile.",
+                message: "",
             });
 
             return () => controller.abort();
@@ -129,13 +132,13 @@ function UserProfilePage({
     function handleSaved(updatedProfile) {
         setProfile(updatedProfile);
         setEditOpen(false);
-        setSuccessMessage("Profile updated.");
+        setSuccessMessage("profile.updated");
         onCurrentUserUpdated(updatedProfile);
     }
 
     function handlePasswordChanged() {
         setChangePasswordOpen(false);
-        onUnauthenticated("Password changed successfully. Please sign in again.");
+        onUnauthenticated("errors.passwordChanged");
     }
 
     const canEdit = profile && canViewProfile(currentUser, profile.id);
@@ -145,8 +148,8 @@ function UserProfilePage({
         currentUser?.id !== undefined &&
         String(currentUser.id) === String(profile.id);
     const displayAddress = profile?.address?.trim() || "—";
-    const displayName = profile?.name?.trim() || "User";
-    const displayEmail = profile?.email?.trim() || "Email unavailable";
+    const displayName = profile?.name?.trim() || t("common.user");
+    const displayEmail = profile?.email?.trim() || t("common.emailUnavailable");
 
     return (
         <main className="user-profile-page">
@@ -154,17 +157,18 @@ function UserProfilePage({
                 <Box className="user-profile-page__header">
                     <Button
                         onClick={onBack}
-                        aria-label="Back to users"
+                        aria-label={t("profile.backToUsersLabel")}
                     >
-                        ← Back to Users
+                        ← {t("profile.backToUsers")}
                     </Button>
                     <Typography
                         className="user-profile-page__title"
                         component="h1"
                         variant="h3"
                     >
-                        Profile
+                        {t("profile.title")}
                     </Typography>
+                    <LanguageSwitcher />
                 </Box>
 
                 {loading && (
@@ -175,7 +179,7 @@ function UserProfilePage({
                         aria-live="polite"
                     >
                         <CircularProgress />
-                        <Typography>Loading profile…</Typography>
+                        <Typography>{t("profile.loading")}</Typography>
                     </Paper>
                 )}
 
@@ -183,15 +187,15 @@ function UserProfilePage({
                     <Paper className="user-profile-page__state" elevation={0}>
                         <Alert severity={error.code === "forbidden" ? "warning" : "error"}>
                             {error.code === "forbidden"
-                                ? error.message
-                                : getSafeError(error)}
+                                ? t("errors.profileForbidden")
+                                : getSafeError(error, t)}
                         </Alert>
                         {error.code !== "forbidden" && (
                             <Button variant="outlined" onClick={handleRetry}>
-                                Retry
+                                {t("common.retry")}
                             </Button>
                         )}
-                        <Button onClick={onBack}>Back to Users</Button>
+                        <Button onClick={onBack}>{t("profile.backToUsers")}</Button>
                     </Paper>
                 )}
 
@@ -214,7 +218,7 @@ function UserProfilePage({
                                     className="user-profile-page__role"
                                     component="span"
                                 >
-                                    {getRoleLabel(profile.role)}
+                                    {getRoleLabel(profile.role, t)}
                                 </Typography>
                             </Box>
                         </Box>
@@ -225,7 +229,7 @@ function UserProfilePage({
                                 role="status"
                                 onClose={() => setSuccessMessage("")}
                             >
-                                {successMessage}
+                                {t(successMessage)}
                             </Alert>
                         )}
 
@@ -235,7 +239,7 @@ function UserProfilePage({
                                     className="user-profile-page__detail-label"
                                     component="h3"
                                 >
-                                    Name
+                                    {t("profile.name")}
                                 </Typography>
                                 <Typography>{displayName}</Typography>
                             </Box>
@@ -244,7 +248,7 @@ function UserProfilePage({
                                     className="user-profile-page__detail-label"
                                     component="h3"
                                 >
-                                    Email
+                                    {t("profile.email")}
                                 </Typography>
                                 <Typography>{displayEmail}</Typography>
                             </Box>
@@ -253,7 +257,7 @@ function UserProfilePage({
                                     className="user-profile-page__detail-label"
                                     component="h3"
                                 >
-                                    Address
+                                    {t("profile.address")}
                                 </Typography>
                                 <Typography>{displayAddress}</Typography>
                             </Box>
@@ -262,9 +266,9 @@ function UserProfilePage({
                                     className="user-profile-page__detail-label"
                                     component="h3"
                                 >
-                                    Role
+                                    {t("profile.role")}
                                 </Typography>
-                                <Typography>{getRoleLabel(profile.role)}</Typography>
+                                <Typography>{getRoleLabel(profile.role, t)}</Typography>
                             </Box>
                         </Box>
 
@@ -274,7 +278,7 @@ function UserProfilePage({
                                     variant="outlined"
                                     onClick={() => setChangePasswordOpen(true)}
                                 >
-                                    Change Password
+                                    {t("profile.changePassword")}
                                 </Button>
                             )}
                             {canEdit && (
@@ -282,7 +286,7 @@ function UserProfilePage({
                                     variant="contained"
                                     onClick={() => setEditOpen(true)}
                                 >
-                                    Edit Profile
+                                    {t("profile.editProfile")}
                                 </Button>
                             )}
                         </Box>

@@ -11,71 +11,49 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { changePassword } from "../../services/authApi";
-
-function getFieldErrors(error) {
-    const errors = error?.payload?.errors;
-    if (!errors || typeof errors !== "object") {
-        return {};
-    }
-
-    const fieldMap = {
-        current_password: "currentPassword",
-        password: "newPassword",
-        password_confirmation: "passwordConfirmation",
-    };
-
-    return Object.fromEntries(
-        Object.entries(fieldMap)
-            .filter(([backendField]) => errors[backendField])
-            .map(([backendField, field]) => [
-                field,
-                Array.isArray(errors[backendField])
-                    ? errors[backendField].join(" ")
-                    : String(errors[backendField]),
-            ]),
-    );
-}
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedValidationErrors } from "../../i18n/errorMessages";
 
 function validateDraft(draft) {
     const errors = {};
 
     if (!draft.currentPassword) {
-        errors.currentPassword = "Current password is required.";
+        errors.currentPassword = "validation.currentPasswordRequired";
     }
 
     if (!draft.newPassword) {
-        errors.newPassword = "New password is required.";
+        errors.newPassword = "validation.newPasswordRequired";
     } else if (draft.newPassword.length < 8) {
-        errors.newPassword = "New password must be at least 8 characters.";
+        errors.newPassword = "validation.newPasswordMin";
     }
 
     if (!draft.passwordConfirmation) {
-        errors.passwordConfirmation = "Please confirm your new password.";
+        errors.passwordConfirmation = "validation.confirmNewPassword";
     } else if (draft.newPassword !== draft.passwordConfirmation) {
-        errors.passwordConfirmation = "Passwords do not match.";
+        errors.passwordConfirmation = "validation.passwordsMismatch";
     }
 
     return errors;
 }
 
-function getErrorMessage(error) {
+function getErrorKey(error) {
     if (error?.code === "network") {
-        return "We could not connect to the server. Check your connection and try again.";
+        return "errors.network";
     }
 
     if (error?.code === "forbidden") {
-        return "You are not authorized to change your password.";
+        return "errors.changePasswordForbidden";
     }
 
     if (error?.code === "validation") {
-        return error.message;
+        return "validation.invalidField";
     }
 
     if (error?.code === "request-failed" || error?.code === "invalid-response") {
-        return error.message || "Password change failed. Please try again.";
+        return "errors.changePassword";
     }
 
-    return "Password change failed. Please try again.";
+    return "errors.changePassword";
 }
 
 function ChangePasswordDialog({
@@ -84,6 +62,7 @@ function ChangePasswordDialog({
     onChanged,
     onUnauthenticated,
 }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState({
         currentPassword: "",
         newPassword: "",
@@ -127,7 +106,7 @@ function ChangePasswordDialog({
         }));
     }
 
-    function renderVisibilityControl(field, label) {
+    function renderVisibilityControl(field) {
         const visible = Boolean(visibleFields[field]);
 
         return (
@@ -136,11 +115,15 @@ function ChangePasswordDialog({
                     type="button"
                     edge="end"
                     onClick={() => toggleVisibility(field)}
-                    aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+                    aria-label={
+                        visible ? t("auth.hidePassword") : t("auth.showPassword")
+                    }
                     disabled={saving}
                     size="small"
                 >
-                    <span aria-hidden="true">{visible ? "Hide" : "Show"}</span>
+                    <span aria-hidden="true">
+                        {visible ? t("auth.hidePassword") : t("auth.showPassword")}
+                    </span>
                 </IconButton>
             </InputAdornment>
         );
@@ -181,9 +164,15 @@ function ChangePasswordDialog({
             }
 
             setFieldErrors(
-                error?.code === "validation" ? getFieldErrors(error) : {},
+                error?.code === "validation"
+                    ? getLocalizedValidationErrors(error, {
+                          current_password: "currentPassword",
+                          password: "newPassword",
+                          password_confirmation: "passwordConfirmation",
+                      })
+                    : {},
             );
-            setActionError({ message: getErrorMessage(error) });
+            setActionError({ key: getErrorKey(error) });
         } finally {
             setSaving(false);
         }
@@ -200,13 +189,13 @@ function ChangePasswordDialog({
         >
             <form onSubmit={handleSubmit} noValidate>
                 <DialogTitle id="change-password-dialog-title">
-                    Change password
+                    {t("dialogs.changePasswordTitle")}
                 </DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={2} sx={{ pt: 1 }}>
                         {actionError && (
                             <Alert severity="error" role="alert">
-                                {actionError.message}
+                                {t(actionError.key)}
                             </Alert>
                         )}
 
@@ -219,7 +208,7 @@ function ChangePasswordDialog({
                                     ? "text"
                                     : "password"
                             }
-                            label="Current password"
+                            label={t("dialogs.currentPassword")}
                             name="current_password"
                             autoComplete="current-password"
                             value={draft.currentPassword}
@@ -227,13 +216,16 @@ function ChangePasswordDialog({
                                 updateField("currentPassword", event.target.value)
                             }
                             error={Boolean(fieldErrors.currentPassword)}
-                            helperText={fieldErrors.currentPassword || " "}
+                            helperText={
+                                fieldErrors.currentPassword
+                                    ? t(fieldErrors.currentPassword)
+                                    : " "
+                            }
                             disabled={saving}
                             slotProps={{
                                 input: {
                                     endAdornment: renderVisibilityControl(
                                         "currentPassword",
-                                        "current password",
                                     ),
                                 },
                             }}
@@ -243,7 +235,7 @@ function ChangePasswordDialog({
                             fullWidth
                             required
                             type={visibleFields.newPassword ? "text" : "password"}
-                            label="New password"
+                            label={t("dialogs.newPassword")}
                             name="password"
                             autoComplete="new-password"
                             value={draft.newPassword}
@@ -251,13 +243,16 @@ function ChangePasswordDialog({
                                 updateField("newPassword", event.target.value)
                             }
                             error={Boolean(fieldErrors.newPassword)}
-                            helperText={fieldErrors.newPassword || " "}
+                            helperText={
+                                fieldErrors.newPassword
+                                    ? t(fieldErrors.newPassword)
+                                    : " "
+                            }
                             disabled={saving}
                             slotProps={{
                                 input: {
                                     endAdornment: renderVisibilityControl(
                                         "newPassword",
-                                        "new password",
                                     ),
                                 },
                             }}
@@ -271,7 +266,7 @@ function ChangePasswordDialog({
                                     ? "text"
                                     : "password"
                             }
-                            label="Confirm new password"
+                            label={t("dialogs.confirmNewPassword")}
                             name="password_confirmation"
                             autoComplete="new-password"
                             value={draft.passwordConfirmation}
@@ -282,13 +277,16 @@ function ChangePasswordDialog({
                                 )
                             }
                             error={Boolean(fieldErrors.passwordConfirmation)}
-                            helperText={fieldErrors.passwordConfirmation || " "}
+                            helperText={
+                                fieldErrors.passwordConfirmation
+                                    ? t(fieldErrors.passwordConfirmation)
+                                    : " "
+                            }
                             disabled={saving}
                             slotProps={{
                                 input: {
                                     endAdornment: renderVisibilityControl(
                                         "passwordConfirmation",
-                                        "password confirmation",
                                     ),
                                 },
                             }}
@@ -297,7 +295,7 @@ function ChangePasswordDialog({
                 </DialogContent>
                 <DialogActions>
                     <Button type="button" onClick={handleClose} disabled={saving}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button
                         type="submit"
@@ -307,7 +305,9 @@ function ChangePasswordDialog({
                             saving ? <CircularProgress color="inherit" size={18} /> : null
                         }
                     >
-                        {saving ? "Changing password…" : "Change Password"}
+                        {saving
+                            ? t("dialogs.changingPassword")
+                            : t("dialogs.changePassword")}
                     </Button>
                 </DialogActions>
             </form>

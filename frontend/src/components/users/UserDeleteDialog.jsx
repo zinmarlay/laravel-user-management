@@ -8,6 +8,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import { deleteUser } from "../../services/usersApi";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedErrorMessage } from "../../i18n/errorMessages";
 
 function UserDeleteDialog({
     open,
@@ -16,6 +18,7 @@ function UserDeleteDialog({
     onDeleted,
     onUnauthenticated,
 }) {
+    const { t } = useTranslation();
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState(null);
 
@@ -58,7 +61,7 @@ function UserDeleteDialog({
             aria-labelledby="delete-user-dialog-title"
         >
             <DialogTitle id="delete-user-dialog-title">
-                Delete user?
+                {t("dialogs.deleteTitle")}
             </DialogTitle>
             <DialogContent dividers>
                 {error && (
@@ -68,17 +71,19 @@ function UserDeleteDialog({
                         }
                         sx={{ mb: 2 }}
                     >
-                        {error.message}
+                        {getLocalizedErrorMessage(error, t, "errors.delete")}
                     </Alert>
                 )}
                 <Typography>
-                    Delete <strong>{user.name || "this user"}</strong> (
-                    {user.email || "no email"})? This action cannot be undone.
+                    {t("dialogs.deleteConfirmation", {
+                        name: user.name || t("dialogs.deleteThisUser"),
+                        email: user.email || t("common.noEmail"),
+                    })}
                 </Typography>
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose} disabled={deleting}>
-                    Cancel
+                    {t("common.cancel")}
                 </Button>
                 <Button
                     color="error"
@@ -89,7 +94,7 @@ function UserDeleteDialog({
                         deleting ? <CircularProgress color="inherit" size={16} /> : undefined
                     }
                 >
-                    {deleting ? "Deleting…" : "Delete"}
+                    {deleting ? t("dialogs.deleting") : t("common.delete")}
                 </Button>
             </DialogActions>
         </Dialog>

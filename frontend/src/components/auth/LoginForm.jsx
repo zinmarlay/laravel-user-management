@@ -7,55 +7,44 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { loginUser } from "../../services/authApi";
-
-function getValidationErrors(error) {
-    const errors = error?.payload?.errors;
-    if (!errors || typeof errors !== "object") {
-        return {};
-    }
-
-    return Object.fromEntries(
-        Object.entries(errors).map(([field, messages]) => [
-            field,
-            Array.isArray(messages) ? messages.join(" ") : String(messages),
-        ]),
-    );
-}
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedValidationErrors } from "../../i18n/errorMessages";
 
 function validateForm(email, password) {
     const errors = {};
     const normalizedEmail = email.trim();
 
     if (!normalizedEmail) {
-        errors.email = "Email is required.";
+        errors.email = "validation.emailRequired";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-        errors.email = "Enter a valid email address.";
+        errors.email = "validation.validEmail";
     }
 
     if (!password) {
-        errors.password = "Password is required.";
+        errors.password = "validation.passwordRequired";
     }
 
     return errors;
 }
 
-function getLoginErrorMessage(error) {
+function getLoginErrorKey(error) {
     if (error?.code === "invalid-credentials") {
-        return "Invalid email or password.";
+        return "errors.invalidCredentials";
     }
 
     if (error?.code === "network") {
-        return "We could not connect to the server. Check your connection and try again.";
+        return "errors.network";
     }
 
     if (error?.code === "invalid-response") {
-        return "Sign-in failed. Please try again.";
+        return "errors.signIn";
     }
 
-    return "Sign-in failed. Please try again.";
+    return "errors.signIn";
 }
 
 function LoginForm({ onAuthenticated }) {
+    const { t } = useTranslation();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -96,13 +85,18 @@ function LoginForm({ onAuthenticated }) {
         } catch (error) {
             setPassword("");
             setFieldErrors(
-                error?.code === "validation" ? getValidationErrors(error) : {},
+                error?.code === "validation"
+                    ? getLocalizedValidationErrors(error, {
+                          email: "email",
+                          password: "password",
+                      })
+                    : {},
             );
             setLoginError({
-                message:
+                key:
                     error?.code === "validation"
-                        ? error.message
-                        : getLoginErrorMessage(error),
+                        ? "validation.invalidField"
+                        : getLoginErrorKey(error),
             });
         } finally {
             setLoading(false);
@@ -114,7 +108,7 @@ function LoginForm({ onAuthenticated }) {
             <Stack spacing={2.25}>
                 {loginError && (
                     <Alert severity="error" role="alert">
-                        {loginError.message}
+                        {t(loginError.key)}
                     </Alert>
                 )}
 
@@ -123,7 +117,7 @@ function LoginForm({ onAuthenticated }) {
                     fullWidth
                     required
                     type="email"
-                    label="Email address"
+                    label={t("auth.emailAddress")}
                     name="email"
                     autoComplete="email"
                     value={email}
@@ -131,7 +125,7 @@ function LoginForm({ onAuthenticated }) {
                         updateField("email", event.target.value)
                     }
                     error={Boolean(fieldErrors.email)}
-                    helperText={fieldErrors.email || " "}
+                    helperText={fieldErrors.email ? t(fieldErrors.email) : " "}
                     disabled={loading}
                 />
 
@@ -139,7 +133,7 @@ function LoginForm({ onAuthenticated }) {
                     fullWidth
                     required
                     type={showPassword ? "text" : "password"}
-                    label="Password"
+                    label={t("auth.password")}
                     name="password"
                     autoComplete="current-password"
                     value={password}
@@ -147,7 +141,9 @@ function LoginForm({ onAuthenticated }) {
                         updateField("password", event.target.value)
                     }
                     error={Boolean(fieldErrors.password)}
-                    helperText={fieldErrors.password || " "}
+                    helperText={
+                        fieldErrors.password ? t(fieldErrors.password) : " "
+                    }
                     disabled={loading}
                     slotProps={{
                         input: {
@@ -161,14 +157,16 @@ function LoginForm({ onAuthenticated }) {
                                         }
                                         aria-label={
                                             showPassword
-                                                ? "Hide password"
-                                                : "Show password"
+                                                ? t("auth.hidePassword")
+                                                : t("auth.showPassword")
                                         }
                                         disabled={loading}
                                         size="small"
                                     >
                                         <span aria-hidden="true">
-                                            {showPassword ? "Hide" : "Show"}
+                                            {showPassword
+                                                ? t("auth.hidePassword")
+                                                : t("auth.showPassword")}
                                         </span>
                                     </IconButton>
                                 </InputAdornment>
@@ -188,7 +186,7 @@ function LoginForm({ onAuthenticated }) {
                         loading ? <CircularProgress color="inherit" size={18} /> : null
                     }
                 >
-                    {loading ? "Signing in…" : "Sign in"}
+                    {loading ? t("auth.signingIn") : t("auth.signInTitle")}
                 </Button>
             </Stack>
         </form>

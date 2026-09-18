@@ -9,31 +9,19 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { registerUser } from "../../services/authApi";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedValidationErrors } from "../../i18n/errorMessages";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
 
-function getValidationErrors(error) {
-    const errors = error?.payload?.errors;
-    if (!errors || typeof errors !== "object") {
-        return {};
-    }
-
-    return Object.fromEntries(
-        Object.entries(errors).map(([field, messages]) => [
-            field === "password_confirmation" ? "passwordConfirmation" : field,
-            Array.isArray(messages) ? messages.join(" ") : String(messages),
-        ]),
-    );
-}
-
 function validatePhoto(file) {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        return "Choose a JPEG, PNG, or WebP image.";
+        return "validation.photoType";
     }
 
     if (file.size > MAX_PHOTO_SIZE) {
-        return "Photo must be 2 MB or smaller.";
+        return "validation.photoSize";
     }
 
     return "";
@@ -45,27 +33,27 @@ function validateDraft(draft, photoValidationError) {
     const email = draft.email.trim();
 
     if (!name) {
-        errors.name = "Name is required.";
+        errors.name = "validation.nameRequired";
     } else if (name.length > 255) {
-        errors.name = "Name must be 255 characters or fewer.";
+        errors.name = "validation.nameMax";
     }
 
     if (!email) {
-        errors.email = "Email is required.";
+        errors.email = "validation.emailRequired";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errors.email = "Enter a valid email address.";
+        errors.email = "validation.validEmail";
     }
 
     if (!draft.password) {
-        errors.password = "Password is required.";
+        errors.password = "validation.passwordRequired";
     } else if (draft.password.length < 8) {
-        errors.password = "Password must be at least 8 characters.";
+        errors.password = "validation.passwordMin";
     }
 
     if (!draft.passwordConfirmation) {
-        errors.passwordConfirmation = "Please confirm your password.";
+        errors.passwordConfirmation = "validation.confirmPassword";
     } else if (draft.password !== draft.passwordConfirmation) {
-        errors.passwordConfirmation = "Passwords do not match.";
+        errors.passwordConfirmation = "validation.passwordsMismatch";
     }
 
     if (photoValidationError) {
@@ -75,21 +63,22 @@ function validateDraft(draft, photoValidationError) {
     return errors;
 }
 
-function getRegisterErrorMessage(error) {
+function getRegisterErrorKey(error) {
     if (error?.code === "network") {
-        return "We could not connect to the server. Check your connection and try again.";
+        return "errors.network";
     }
 
     if (error?.code === "invalid-response") {
-        return "Registration failed. Please try again.";
+        return "errors.registration";
     }
 
     return error?.code === "validation"
-        ? error.message
-        : "Registration failed. Please try again.";
+        ? "validation.invalidField"
+        : "errors.registration";
 }
 
 function RegisterForm({ onAuthenticated }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState({
         name: "",
         email: "",
@@ -179,7 +168,7 @@ function RegisterForm({ onAuthenticated }) {
 
         if (Object.keys(validationErrors).length > 0) {
             setRegisterError({
-                message: "Please correct the highlighted fields.",
+                key: "validation.form",
             });
             return;
         }
@@ -207,10 +196,19 @@ function RegisterForm({ onAuthenticated }) {
                 passwordConfirmation: "",
             }));
             setFieldErrors(
-                error?.code === "validation" ? getValidationErrors(error) : {},
+                error?.code === "validation"
+                    ? getLocalizedValidationErrors(error, {
+                          name: "name",
+                          email: "email",
+                          password: "password",
+                          password_confirmation: "passwordConfirmation",
+                          address: "address",
+                          photo: "photo",
+                      })
+                    : {},
             );
             setRegisterError({
-                message: getRegisterErrorMessage(error),
+                key: getRegisterErrorKey(error),
             });
         } finally {
             setLoading(false);
@@ -222,7 +220,7 @@ function RegisterForm({ onAuthenticated }) {
             <Stack spacing={2.25}>
                 {registerError && (
                     <Alert severity="error" role="alert">
-                        {registerError.message}
+                        {t(registerError.key)}
                     </Alert>
                 )}
 
@@ -230,19 +228,19 @@ function RegisterForm({ onAuthenticated }) {
                     autoFocus
                     fullWidth
                     required
-                    label="Name"
+                    label={t("auth.name")}
                     name="name"
                     autoComplete="name"
                     value={draft.name}
                     onChange={(event) => updateField("name", event.target.value)}
                     error={Boolean(fieldErrors.name)}
-                    helperText={fieldErrors.name || " "}
+                    helperText={fieldErrors.name ? t(fieldErrors.name) : " "}
                     disabled={loading}
                 />
 
                 <Box className="register-form__photo">
                     <Typography component="p" variant="body2">
-                        Photo (optional)
+                        {t("auth.photoOptional")}
                     </Typography>
                     <Box className="register-form__photo-actions">
                         <Button
@@ -250,12 +248,12 @@ function RegisterForm({ onAuthenticated }) {
                             variant="outlined"
                             disabled={loading}
                         >
-                            {photoFile ? "Replace photo" : "Choose photo"}
+                            {photoFile ? t("auth.replacePhoto") : t("auth.choosePhoto")}
                             <input
                                 type="file"
                                 hidden
                                 accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                                aria-label="Choose profile photo"
+                                aria-label={t("auth.choosePhotoLabel")}
                                 onChange={handlePhotoChange}
                                 disabled={loading}
                             />
@@ -267,7 +265,7 @@ function RegisterForm({ onAuthenticated }) {
                                 onClick={removePhoto}
                                 disabled={loading}
                             >
-                                Remove photo
+                                {t("auth.removePhoto")}
                             </Button>
                         )}
                         {photoFile && (
@@ -284,18 +282,18 @@ function RegisterForm({ onAuthenticated }) {
                         <img
                             className="register-form__photo-preview"
                             src={photoPreviewUrl}
-                            alt="Preview of selected profile photo"
+                            alt={t("auth.photoPreview")}
                         />
                     )}
                     <Typography
                         className="register-form__photo-help"
                         variant="caption"
                     >
-                        Choose a JPEG, PNG, or WebP image up to 2 MB.
+                        {t("auth.photoHelp")}
                     </Typography>
                     {fieldErrors.photo && (
                         <Typography color="error" variant="caption">
-                            {fieldErrors.photo}
+                            {t(fieldErrors.photo)}
                         </Typography>
                     )}
                 </Box>
@@ -304,13 +302,13 @@ function RegisterForm({ onAuthenticated }) {
                     fullWidth
                     required
                     type="email"
-                    label="Email address"
+                    label={t("auth.emailAddress")}
                     name="email"
                     autoComplete="email"
                     value={draft.email}
                     onChange={(event) => updateField("email", event.target.value)}
                     error={Boolean(fieldErrors.email)}
-                    helperText={fieldErrors.email || " "}
+                    helperText={fieldErrors.email ? t(fieldErrors.email) : " "}
                     disabled={loading}
                 />
 
@@ -318,7 +316,7 @@ function RegisterForm({ onAuthenticated }) {
                     fullWidth
                     required
                     type={showPassword ? "text" : "password"}
-                    label="Password"
+                    label={t("auth.password")}
                     name="password"
                     autoComplete="new-password"
                     value={draft.password}
@@ -326,7 +324,9 @@ function RegisterForm({ onAuthenticated }) {
                         updateField("password", event.target.value)
                     }
                     error={Boolean(fieldErrors.password)}
-                    helperText={fieldErrors.password || " "}
+                    helperText={
+                        fieldErrors.password ? t(fieldErrors.password) : " "
+                    }
                     disabled={loading}
                     slotProps={{
                         input: {
@@ -340,14 +340,16 @@ function RegisterForm({ onAuthenticated }) {
                                         }
                                         aria-label={
                                             showPassword
-                                                ? "Hide password"
-                                                : "Show password"
+                                                ? t("auth.hidePassword")
+                                                : t("auth.showPassword")
                                         }
                                         disabled={loading}
                                         size="small"
                                     >
                                         <span aria-hidden="true">
-                                            {showPassword ? "Hide" : "Show"}
+                                            {showPassword
+                                                ? t("auth.hidePassword")
+                                                : t("auth.showPassword")}
                                         </span>
                                     </IconButton>
                                 </InputAdornment>
@@ -360,7 +362,7 @@ function RegisterForm({ onAuthenticated }) {
                     fullWidth
                     required
                     type={showConfirmation ? "text" : "password"}
-                    label="Confirm password"
+                    label={t("auth.confirmPassword")}
                     name="password_confirmation"
                     autoComplete="new-password"
                     value={draft.passwordConfirmation}
@@ -368,7 +370,11 @@ function RegisterForm({ onAuthenticated }) {
                         updateField("passwordConfirmation", event.target.value)
                     }
                     error={Boolean(fieldErrors.passwordConfirmation)}
-                    helperText={fieldErrors.passwordConfirmation || " "}
+                    helperText={
+                        fieldErrors.passwordConfirmation
+                            ? t(fieldErrors.passwordConfirmation)
+                            : " "
+                    }
                     disabled={loading}
                     slotProps={{
                         input: {
@@ -382,14 +388,16 @@ function RegisterForm({ onAuthenticated }) {
                                         }
                                         aria-label={
                                             showConfirmation
-                                                ? "Hide password confirmation"
-                                                : "Show password confirmation"
+                                                ? t("auth.hidePasswordConfirmation")
+                                                : t("auth.showPasswordConfirmation")
                                         }
                                         disabled={loading}
                                         size="small"
                                     >
                                         <span aria-hidden="true">
-                                            {showConfirmation ? "Hide" : "Show"}
+                                            {showConfirmation
+                                                ? t("auth.hidePasswordConfirmation")
+                                                : t("auth.showPasswordConfirmation")}
                                         </span>
                                     </IconButton>
                                 </InputAdornment>
@@ -402,7 +410,7 @@ function RegisterForm({ onAuthenticated }) {
                     fullWidth
                     multiline
                     minRows={3}
-                    label="Address"
+                    label={t("auth.address")}
                     name="address"
                     autoComplete="street-address"
                     value={draft.address}
@@ -410,7 +418,11 @@ function RegisterForm({ onAuthenticated }) {
                         updateField("address", event.target.value)
                     }
                     error={Boolean(fieldErrors.address)}
-                    helperText={fieldErrors.address || "Optional"}
+                    helperText={
+                        fieldErrors.address
+                            ? t(fieldErrors.address)
+                            : t("common.optional")
+                    }
                     disabled={loading}
                 />
 
@@ -425,7 +437,9 @@ function RegisterForm({ onAuthenticated }) {
                         loading ? <CircularProgress color="inherit" size={18} /> : null
                     }
                 >
-                    {loading ? "Creating account…" : "Create account"}
+                    {loading
+                        ? t("auth.creatingAccount")
+                        : t("auth.createAccount")}
                 </Button>
             </Stack>
         </form>

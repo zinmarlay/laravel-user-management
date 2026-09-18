@@ -4,8 +4,11 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function UserAuthorizationDialog({ open, message, onClose }) {
+    const { t } = useTranslation();
+
     return (
         <Dialog
             open={open}
@@ -16,7 +19,7 @@ function UserAuthorizationDialog({ open, message, onClose }) {
             aria-describedby="user-authorization-dialog-description"
         >
             <DialogTitle id="user-authorization-dialog-title">
-                Permission required
+                {t("dialogs.permissionRequired")}
             </DialogTitle>
             <DialogContent dividers>
                 <Typography id="user-authorization-dialog-description">
@@ -25,7 +28,7 @@ function UserAuthorizationDialog({ open, message, onClose }) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} autoFocus>
-                    Close
+                    {t("common.close")}
                 </Button>
             </DialogActions>
         </Dialog>

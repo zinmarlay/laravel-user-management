@@ -1,6 +1,9 @@
 import Pagination from '@mui/material/Pagination'
+import { useTranslation } from '../../i18n/LanguageContext'
 
 function UserListPagination({ page, count, onChange, disabled }) {
+  const { t } = useTranslation()
+
   if (count <= 1) {
     return null
   }
@@ -14,7 +17,7 @@ function UserListPagination({ page, count, onChange, disabled }) {
         shape="rounded"
         disabled={disabled}
         onChange={onChange}
-        aria-label="User list pagination"
+        aria-label={t('users.pagination')}
       />
     </div>
   )

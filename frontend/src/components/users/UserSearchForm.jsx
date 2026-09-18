@@ -2,15 +2,18 @@ import Button from '@mui/material/Button'
 import InputAdornment from '@mui/material/InputAdornment'
 import TextField from '@mui/material/TextField'
 import SearchIcon from '@mui/icons-material/Search'
+import { useTranslation } from '../../i18n/LanguageContext'
 
 function UserSearchForm({ value, onChange, onSubmit, disabled }) {
+  const { t } = useTranslation()
+
   return (
     <form className="user-list-page__search" onSubmit={onSubmit} role="search">
       <TextField
         className="user-list-page__search-field"
         fullWidth
-        label="Search users"
-        placeholder="Search by name or email"
+        label={t('users.searchLabel')}
+        placeholder={t('users.searchPlaceholder')}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         slotProps={{
@@ -22,7 +25,7 @@ function UserSearchForm({ value, onChange, onSubmit, disabled }) {
             ),
           },
           htmlInput: {
-            'aria-label': 'Search users by name or email',
+            'aria-label': t('users.searchAccessible'),
           },
         }}
       />
@@ -33,7 +36,7 @@ function UserSearchForm({ value, onChange, onSubmit, disabled }) {
         disabled={disabled}
         startIcon={<SearchIcon />}
       >
-        Search
+        {t('users.search')}
       </Button>
     </form>
   )

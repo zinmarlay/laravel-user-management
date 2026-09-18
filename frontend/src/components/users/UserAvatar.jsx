@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Avatar from '@mui/material/Avatar'
+import { useTranslation } from '../../i18n/LanguageContext'
 
 function getInitials(name) {
   const words = String(name || '').trim().split(/\s+/).filter(Boolean)
@@ -15,13 +16,17 @@ function getInitials(name) {
 }
 
 function UserAvatar({ name, photo, className }) {
+  const { t } = useTranslation()
   const imageSource = typeof photo === 'string' ? photo.trim() : ''
   const [failedImageSource, setFailedImageSource] = useState('')
   const imageError = failedImageSource === imageSource
 
   if (!imageSource || imageError) {
     return (
-      <Avatar className={className} aria-label={`Avatar for ${name || 'user'}`}>
+      <Avatar
+        className={className}
+        aria-label={t('common.avatarFor', { name: name || t('common.user') })}
+      >
         {getInitials(name)}
       </Avatar>
     )
@@ -30,7 +35,7 @@ function UserAvatar({ name, photo, className }) {
   return (
     <Avatar
       className={className}
-      alt={`Photo of ${name || 'user'}`}
+      alt={t('common.photoOf', { name: name || t('common.user') })}
       src={imageSource}
       imgProps={{
         onError: () => setFailedImageSource(imageSource),

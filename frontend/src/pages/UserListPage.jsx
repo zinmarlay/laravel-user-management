@@ -7,6 +7,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
 import UserDeleteDialog from "../components/users/UserDeleteDialog";
 import UserAuthorizationDialog from "../components/users/UserAuthorizationDialog";
 import UserListPagination from "../components/users/UserListPagination";
@@ -20,6 +21,8 @@ import UserRoleDialog from "../components/users/UserRoleDialog";
 import UserTable from "../components/users/UserTable";
 import { logoutUser } from "../services/authApi";
 import { fetchUsers } from "../services/usersApi";
+import { useTranslation } from "../i18n/LanguageContext";
+import { getLocalizedErrorMessage } from "../i18n/errorMessages";
 import "../App.css";
 
 function canPerformAction(action, currentUser, targetUser) {
@@ -42,36 +45,36 @@ function canPerformAction(action, currentUser, targetUser) {
     );
 }
 
-function getAuthorizationMessage(action, currentUser) {
+function getAuthorizationMessage(action, currentUser, t) {
     if (!currentUser || !["admin", "user"].includes(currentUser.role)) {
-        return "User permissions are unavailable. Please sign in again.";
+        return t("dialogs.permissionUnavailable");
     }
 
     if (action === "view") {
-        return "You are not authorized to view this profile.";
+        return t("dialogs.viewForbidden");
     }
 
     if (action === "edit") {
-        return "You can edit your own profile, but only administrators can edit another user.";
+        return t("dialogs.editOwnOnly");
     }
 
     if (action === "delete") {
-        return "Only administrators can delete users.";
+        return t("dialogs.deleteAdminOnly");
     }
 
-    return "Only administrators can change user roles.";
+    return t("dialogs.roleAdminOnly");
 }
 
-function getRoleLabel(role) {
+function getRoleLabel(role, t) {
     if (role === "admin") {
-        return "Admin";
+        return t("roles.admin");
     }
 
     if (role === "user") {
-        return "User";
+        return t("roles.user");
     }
 
-    return "Role unavailable";
+    return t("common.roleUnavailable");
 }
 
 function UserListPage({
@@ -81,6 +84,7 @@ function UserListPage({
     onViewProfile,
     refreshKey = 0,
 }) {
+    const { t } = useTranslation();
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState({ search: "", page: 1 });
     const [result, setResult] = useState(null);
@@ -119,7 +123,7 @@ function UserListPage({
         if (!canPerformAction(action, currentUser, user)) {
             authorizationTrigger.current = document.activeElement;
             setAuthorizationAlert({
-                message: getAuthorizationMessage(action, currentUser),
+                action,
             });
             return;
         }
@@ -254,9 +258,9 @@ function UserListPage({
     const showInitialLoading = loading && !result;
     const showTable = result && hasRows;
     const showInlineError = Boolean(error && result);
-    const currentUserName = currentUser?.name?.trim() || "Signed-in user";
-    const currentUserEmail = currentUser?.email?.trim() || "Identity unavailable";
-    const currentUserRole = getRoleLabel(currentUser?.role);
+    const currentUserName = currentUser?.name?.trim() || t("users.signedInUser");
+    const currentUserEmail = currentUser?.email?.trim() || t("users.identityUnavailable");
+    const currentUserRole = getRoleLabel(currentUser?.role, t);
 
     return (
         <main className="user-list-page">
@@ -268,14 +272,14 @@ function UserListPage({
                             component="h1"
                             variant="h3"
                         >
-                            Users
+                            {t("users.title")}
                         </Typography>
                         <Box
                             className="user-list-page__identity"
                             aria-label={
                                 currentUser
-                                    ? "Current user"
-                                    : "Current user unavailable"
+                                    ? t("users.currentUser")
+                                    : t("users.currentUserUnavailable")
                             }
                         >
                             <Typography
@@ -298,20 +302,23 @@ function UserListPage({
                             />
                         </Box>
                     </Box>
-                    <Button
-                        variant="outlined"
-                        onClick={handleLogout}
-                        disabled={loggingOut}
-                        startIcon={
-                            loggingOut ? (
-                                <CircularProgress size={16} />
-                            ) : (
-                                <LogoutIcon />
-                            )
-                        }
-                    >
-                        {loggingOut ? "Logging out…" : "Logout"}
-                    </Button>
+                    <Box className="user-list-page__header-actions">
+                        <LanguageSwitcher />
+                        <Button
+                            variant="outlined"
+                            onClick={handleLogout}
+                            disabled={loggingOut}
+                            startIcon={
+                                loggingOut ? (
+                                    <CircularProgress size={16} />
+                                ) : (
+                                    <LogoutIcon />
+                                )
+                            }
+                        >
+                            {loggingOut ? t("users.loggingOut") : t("users.logout")}
+                        </Button>
+                    </Box>
                 </Box>
 
                 <Paper className="user-list-page__surface" elevation={0}>
@@ -331,7 +338,7 @@ function UserListPage({
                                     size="small"
                                     onClick={retry}
                                 >
-                                    Retry
+                                    {t("common.retry")}
                                 </Button>
                             }
                             severity={
@@ -340,7 +347,7 @@ function UserListPage({
                                     : "error"
                             }
                         >
-                            {error.message}
+                            {getLocalizedErrorMessage(error, t, "errors.loadUsers")}
                         </Alert>
                     )}
 
@@ -389,7 +396,15 @@ function UserListPage({
             </Box>
             <UserAuthorizationDialog
                 open={Boolean(authorizationAlert)}
-                message={authorizationAlert?.message || ""}
+                message={
+                    authorizationAlert
+                        ? getAuthorizationMessage(
+                              authorizationAlert.action,
+                              currentUser,
+                              t,
+                          )
+                        : ""
+                }
                 onClose={closeAuthorizationDialog}
             />
             <UserDeleteDialog

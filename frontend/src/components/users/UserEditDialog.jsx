@@ -12,6 +12,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import UserAvatar from "./UserAvatar";
 import { updateUser } from "../../services/usersApi";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedValidationErrors } from "../../i18n/errorMessages";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
@@ -24,35 +26,21 @@ function getInitialDraft(user) {
     };
 }
 
-function getFieldErrors(error) {
-    const errors = error?.payload?.errors;
-    if (!errors || typeof errors !== "object") {
-        return {};
-    }
-
-    return Object.fromEntries(
-        Object.entries(errors).map(([field, messages]) => [
-            field,
-            Array.isArray(messages) ? messages.join(" ") : String(messages),
-        ]),
-    );
-}
-
 function validateDraft(draft, photoError) {
     const errors = {};
     const name = draft.name.trim();
     const email = draft.email.trim();
 
     if (!name) {
-        errors.name = "Name is required.";
+        errors.name = "validation.nameRequired";
     } else if (name.length > 255) {
-        errors.name = "Name must be 255 characters or fewer.";
+        errors.name = "validation.nameMax";
     }
 
     if (!email) {
-        errors.email = "Email is required.";
+        errors.email = "validation.emailRequired";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errors.email = "Enter a valid email address.";
+        errors.email = "validation.validEmail";
     }
 
     if (photoError) {
@@ -64,11 +52,11 @@ function validateDraft(draft, photoError) {
 
 function validatePhoto(file) {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        return "Choose a JPEG, PNG, or WebP image.";
+        return "validation.photoType";
     }
 
     if (file.size > MAX_PHOTO_SIZE) {
-        return "Photo must be 2 MB or smaller.";
+        return "validation.photoSize";
     }
 
     return "";
@@ -81,6 +69,7 @@ function UserEditDialog({
     onSaved,
     onUnauthenticated,
 }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(() => getInitialDraft(user));
     const [fieldErrors, setFieldErrors] = useState({});
     const [actionError, setActionError] = useState(null);
@@ -185,7 +174,7 @@ function UserEditDialog({
 
         if (Object.keys(validationErrors).length > 0) {
             setActionError({
-                message: "Please correct the highlighted fields.",
+                key: "validation.form",
             });
             return;
         }
@@ -223,8 +212,23 @@ function UserEditDialog({
                 return;
             }
 
-            setFieldErrors(getFieldErrors(error));
-            setActionError(error);
+            setFieldErrors(
+                error?.code === "validation"
+                    ? getLocalizedValidationErrors(error, {
+                          name: "name",
+                          email: "email",
+                          address: "address",
+                          photo: "photo",
+                      })
+                    : {},
+            );
+            setActionError({
+                code: error?.code,
+                key:
+                    error?.code === "validation"
+                        ? "validation.invalidField"
+                        : "errors.edit",
+            });
         } finally {
             setSaving(false);
         }
@@ -237,7 +241,7 @@ function UserEditDialog({
         }
     }
 
-    const errorMessage = actionError?.message;
+    const errorMessage = actionError?.key ? t(actionError.key) : "";
     const photoSource = photoPreviewUrl || (!photoRemoved ? user.photo : "");
     const hasPhoto = Boolean(photoSource);
 
@@ -252,7 +256,7 @@ function UserEditDialog({
         >
             <form onSubmit={handleSubmit} noValidate>
                 <DialogTitle id="edit-user-dialog-title">
-                    Edit profile
+                    {t("dialogs.editTitle")}
                 </DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -279,12 +283,14 @@ function UserEditDialog({
                                     variant="outlined"
                                     disabled={saving}
                                 >
-                                    {hasPhoto ? "Replace photo" : "Choose photo"}
+                                    {hasPhoto
+                                        ? t("auth.replacePhoto")
+                                        : t("auth.choosePhoto")}
                                     <input
                                         type="file"
                                         hidden
                                         accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                                        aria-label="Choose profile photo"
+                                        aria-label={t("auth.choosePhotoLabel")}
                                         onChange={handlePhotoChange}
                                         disabled={saving}
                                     />
@@ -295,16 +301,16 @@ function UserEditDialog({
                                         onClick={handleRemovePhoto}
                                         disabled={saving}
                                     >
-                                        Remove photo
+                                        {t("auth.removePhoto")}
                                     </Button>
                                 )}
                             </Box>
                             <Typography variant="caption">
-                                JPEG, PNG, or WebP up to 2 MB.
+                                {t("auth.photoHelp")}
                             </Typography>
                             {(fieldErrors.photo || photoError) && (
                                 <Typography color="error" variant="caption">
-                                    {fieldErrors.photo || photoError}
+                                    {t(fieldErrors.photo || photoError)}
                                 </Typography>
                             )}
                         </Box>
@@ -312,46 +318,46 @@ function UserEditDialog({
                             autoFocus
                             fullWidth
                             required
-                            label="Name"
+                            label={t("profile.name")}
                             value={draft.name}
                             onChange={(event) =>
                                 updateField("name", event.target.value)
                             }
                             error={Boolean(fieldErrors.name)}
-                            helperText={fieldErrors.name || " "}
+                            helperText={fieldErrors.name ? t(fieldErrors.name) : " "}
                             disabled={saving}
                         />
                         <TextField
                             fullWidth
                             required
                             type="email"
-                            label="Email"
+                            label={t("profile.email")}
                             value={draft.email}
                             onChange={(event) =>
                                 updateField("email", event.target.value)
                             }
                             error={Boolean(fieldErrors.email)}
-                            helperText={fieldErrors.email || " "}
+                            helperText={fieldErrors.email ? t(fieldErrors.email) : " "}
                             disabled={saving}
                         />
                         <TextField
                             fullWidth
                             multiline
                             minRows={3}
-                            label="Address"
+                            label={t("profile.address")}
                             value={draft.address}
                             onChange={(event) =>
                                 updateField("address", event.target.value)
                             }
                             error={Boolean(fieldErrors.address)}
-                            helperText={fieldErrors.address || " "}
+                            helperText={fieldErrors.address ? t(fieldErrors.address) : " "}
                             disabled={saving}
                         />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose} disabled={saving}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button
                         type="submit"
@@ -361,7 +367,7 @@ function UserEditDialog({
                             saving ? <CircularProgress size={16} /> : undefined
                         }
                     >
-                        {saving ? "Saving…" : "Save changes"}
+                        {saving ? t("dialogs.saving") : t("dialogs.saveChanges")}
                     </Button>
                 </DialogActions>
             </form>

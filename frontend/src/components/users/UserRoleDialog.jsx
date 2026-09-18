@@ -13,6 +13,8 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { updateUserRole } from "../../services/usersApi";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { getLocalizedErrorMessage } from "../../i18n/errorMessages";
 
 const roles = ["user", "admin"];
 
@@ -27,6 +29,7 @@ function UserRoleDialog({
     onChanged,
     onUnauthenticated,
 }) {
+    const { t } = useTranslation();
     const [role, setRole] = useState(() => getInitialRole(user));
     const [changingRole, setChangingRole] = useState(false);
     const [error, setError] = useState(null);
@@ -88,7 +91,7 @@ function UserRoleDialog({
         >
             <form onSubmit={handleSubmit}>
                 <DialogTitle id="change-role-dialog-title">
-                    Change user role
+                    {t("dialogs.changeRoleTitle")}
                 </DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -100,36 +103,43 @@ function UserRoleDialog({
                                         : "error"
                                 }
                             >
-                                {error.message}
+                                {getLocalizedErrorMessage(error, t, "errors.role")}
                             </Alert>
                         )}
                         <Typography>
-                            Select a new role for <strong>{user.name}</strong>.
-                            Current role: <strong>{user.role || "unknown"}</strong>.
+                            {t("dialogs.selectRole", {
+                                name: user.name || t("common.user"),
+                                role:
+                                    user.role === "admin"
+                                        ? t("roles.admin")
+                                        : user.role === "user"
+                                            ? t("roles.user")
+                                            : t("common.unknown"),
+                            })}
                         </Typography>
                         <FormControl fullWidth>
                             <InputLabel id="new-user-role-label">
-                                New role
+                                {t("dialogs.newRole")}
                             </InputLabel>
                             <Select
                                 labelId="new-user-role-label"
                                 value={role}
-                                label="New role"
+                                label={t("dialogs.newRole")}
                                 onChange={(event) => {
                                     setRole(event.target.value);
                                     setError(null);
                                 }}
                                 disabled={changingRole}
                             >
-                                <MenuItem value="user">user</MenuItem>
-                                <MenuItem value="admin">admin</MenuItem>
+                                <MenuItem value="user">{t("roles.user")}</MenuItem>
+                                <MenuItem value="admin">{t("roles.admin")}</MenuItem>
                             </Select>
                         </FormControl>
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose} disabled={changingRole}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button
                         type="submit"
@@ -139,7 +149,9 @@ function UserRoleDialog({
                             changingRole ? <CircularProgress size={16} /> : undefined
                         }
                     >
-                        {changingRole ? "Saving…" : "Save role"}
+                        {changingRole
+                            ? t("dialogs.saving")
+                            : t("dialogs.saveRole")}
                     </Button>
                 </DialogActions>
             </form>
