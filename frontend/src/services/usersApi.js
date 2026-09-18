@@ -91,6 +91,35 @@ function getMutationError(status, payload, operation) {
     );
 }
 
+function getProfileError(status, payload) {
+    if (status === 401) {
+        return new UsersApiError(
+            "Your session has expired. Please sign in again.",
+            { status, code: "unauthenticated", payload },
+        );
+    }
+
+    if (status === 403) {
+        return new UsersApiError(
+            "You are not authorized to view this user.",
+            { status, code: "forbidden", payload },
+        );
+    }
+
+    if (status === 404) {
+        return new UsersApiError("The selected user could not be found.", {
+            status,
+            code: "not-found",
+            payload,
+        });
+    }
+
+    return new UsersApiError(
+        "We could not load this user's profile. Please try again.",
+        { status, code: "request-failed", payload },
+    );
+}
+
 async function parseResponsePayload(response) {
     if (response.status === 204) {
         return null;
@@ -150,6 +179,24 @@ function getMutationHeaders(token, contentType = false) {
     }
 
     return headers;
+}
+
+function isFormDataPayload(data) {
+    return typeof FormData !== "undefined" && data instanceof FormData;
+}
+
+function unwrapUserResource(payload) {
+    if (
+        payload &&
+        typeof payload === "object" &&
+        payload.data &&
+        typeof payload.data === "object" &&
+        !Array.isArray(payload.data)
+    ) {
+        return payload.data;
+    }
+
+    return payload;
 }
 
 function isListEmptyResponse(response, payload) {
@@ -257,13 +304,53 @@ export async function fetchUsers({
     return normalizePaginator(payload);
 }
 
+export async function fetchUser(userId, token, signal) {
+    const headers = getMutationHeaders(token);
+    let response;
+
+    try {
+        response = await fetch(getUserEndpoint(userId), {
+            headers,
+            signal,
+        });
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw error;
+        }
+
+        throw new UsersApiError(
+            "We could not connect to the server. Please try again.",
+            { code: "network" },
+        );
+    }
+
+    const payload = await parseResponsePayload(response);
+
+    if (!response.ok) {
+        throw getProfileError(response.status, payload);
+    }
+
+    const profile = unwrapUserResource(payload);
+
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+        throw new UsersApiError(
+            "The profile response was not in the expected format.",
+            { status: response.status, code: "invalid-response", payload },
+        );
+    }
+
+    return profile;
+}
+
 export async function updateUser(userId, data, token, signal) {
+    const formData = isFormDataPayload(data);
+
     return sendMutation(getUserEndpoint(userId), {
-        method: "PUT",
-        body: JSON.stringify(data),
-        headers: getMutationHeaders(token, true),
+        method: formData ? "POST" : "PUT",
+        body: formData ? data : JSON.stringify(data),
+        headers: getMutationHeaders(token, !formData),
         signal,
-    }, "edit");
+    }, "edit").then(unwrapUserResource);
 }
 
 export async function deleteUser(userId, token, signal) {

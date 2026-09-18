@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Gate;
 use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -32,6 +35,11 @@ class UserController extends Controller
                 'message' => 'User not found.',
             ], 404);
         }
+
+        $users->getCollection()->transform(
+            fn (User $user) => (new UserResource($user))->toArray($request),
+        );
+
         return response()->json($users);
     }
 
@@ -41,9 +49,9 @@ class UserController extends Controller
     public function store(StoreUserRequest $request)
     {
 
-        Gate::authorize('create', User::class); //create မှာ target User မရှိသေးလို့ User::class သုံး
+        Gate::authorize('create', User::class); // create မှာ target User မရှိသေးလို့ User::class သုံး
 
-        $validated = $request->validated(); //StoreUserRequest ပုံစံနဲ့ Validationကိုပြောင်း၇ေး
+        $validated = $request->validated(); // StoreUserRequest ပုံစံနဲ့ Validationကိုပြောင်း၇ေး
 
         $user = User::create([
             'name' => $validated['name'],
@@ -66,10 +74,11 @@ class UserController extends Controller
     {
         try {
             Gate::authorize('view', $user);
-            return response()->json($user);
+
+            return new UserResource($user);
         } catch (AuthorizationException $e) {
             return response()->json([
-                'message' => 'You cannot view this user.'
+                'message' => 'You cannot view this user.',
             ], 403);
         }
     }
@@ -86,18 +95,68 @@ class UserController extends Controller
         Gate::authorize('update', $user);
 
         $validated = $request->validated();
+        $oldPhotoPath = $user->photo;
+        $newPhotoPath = null;
+        $removePhoto = (bool) ($validated['remove_photo'] ?? false);
 
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+        try {
+            $updatedUser = DB::transaction(function () use (
+                $request,
+                $validated,
+                $user,
+                $removePhoto,
+                &$newPhotoPath,
+            ) {
+                if ($request->hasFile('photo')) {
+                    $newPhotoPath = $request->file('photo')->store(
+                        'profile-photos',
+                        'public',
+                    );
+
+                    if (! is_string($newPhotoPath) || $newPhotoPath === '') {
+                        throw new \RuntimeException('The profile photo could not be stored.');
+                    }
+                }
+
+                $profileFields = array_intersect_key(
+                    $validated,
+                    array_flip(['name', 'email', 'address']),
+                );
+                $user->fill($profileFields);
+
+                if ($newPhotoPath !== null) {
+                    $user->photo = $newPhotoPath;
+                } elseif ($removePhoto) {
+                    $user->photo = null;
+                }
+
+                $user->save();
+
+                return $user->fresh();
+            });
+
+            if (
+                $oldPhotoPath !== null
+                && $oldPhotoPath !== ''
+                && ($newPhotoPath !== null || $removePhoto)
+                && $oldPhotoPath !== $updatedUser->photo
+            ) {
+                Storage::disk('public')->delete($oldPhotoPath);
+            }
+
+            return new UserResource($updatedUser);
+        } catch (Throwable $exception) {
+            if ($newPhotoPath !== null) {
+                Storage::disk('public')->delete($newPhotoPath);
+            }
+
+            throw $exception;
         }
-        $user->update($validated);
-        return new UserResource($user);
     }
+
     /**
      * Undocumented function
      *
-     * @param Request $request
-     * @param User $user
      * @return void
      */
     public function updateRole(Request $request, User $user)
@@ -112,6 +171,7 @@ class UserController extends Controller
         $user->update([
             'role' => $validated['role'],
         ]);
+
         // ④ Updated user ကို response ပြန်မယ်
         return new UserResource($user);
     }

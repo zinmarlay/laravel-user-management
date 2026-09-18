@@ -14,14 +14,14 @@ function getInitials(name) {
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase()
 }
 
-function UserAvatar({ name, photo }) {
+function UserAvatar({ name, photo, className }) {
   const imageSource = typeof photo === 'string' ? photo.trim() : ''
   const [failedImageSource, setFailedImageSource] = useState('')
   const imageError = failedImageSource === imageSource
 
   if (!imageSource || imageError) {
     return (
-      <Avatar aria-label={`Avatar for ${name || 'user'}`}>
+      <Avatar className={className} aria-label={`Avatar for ${name || 'user'}`}>
         {getInitials(name)}
       </Avatar>
     )
@@ -29,6 +29,7 @@ function UserAvatar({ name, photo }) {
 
   return (
     <Avatar
+      className={className}
       alt={`Photo of ${name || 'user'}`}
       src={imageSource}
       imgProps={{

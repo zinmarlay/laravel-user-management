@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import CssBaseline from '@mui/material/CssBaseline'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import UserProfilePage from './pages/UserProfilePage'
 import UserListPage from './pages/UserListPage'
 
 function hasStoredToken() {
@@ -29,6 +30,9 @@ function App() {
   const [authenticated, setAuthenticated] = useState(hasStoredToken)
   const [currentUser, setCurrentUser] = useState(null)
   const [authScreen, setAuthScreen] = useState('login')
+  const [activePage, setActivePage] = useState('users')
+  const [profileUserId, setProfileUserId] = useState(null)
+  const [userListRefreshKey, setUserListRefreshKey] = useState(0)
 
   const handleAuthenticated = useCallback((response) => {
     try {
@@ -40,6 +44,8 @@ function App() {
     setAuthenticated(true)
     setCurrentUser(getSafeCurrentUser(response?.user))
     setAuthScreen('login')
+    setActivePage('users')
+    setProfileUserId(null)
   }, [])
 
   const handleUnauthenticated = useCallback(() => {
@@ -52,6 +58,8 @@ function App() {
     setCurrentUser(null)
     setAuthenticated(false)
     setAuthScreen('login')
+    setActivePage('users')
+    setProfileUserId(null)
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -64,6 +72,33 @@ function App() {
     setCurrentUser(null)
     setAuthenticated(false)
     setAuthScreen('login')
+    setActivePage('users')
+    setProfileUserId(null)
+  }, [])
+
+  const handleViewProfile = useCallback((user) => {
+    if (user?.id === null || user?.id === undefined) {
+      return
+    }
+
+    setProfileUserId(user.id)
+    setActivePage('profile')
+  }, [])
+
+  const handleBackToUsers = useCallback(() => {
+    setActivePage('users')
+  }, [])
+
+  const handleCurrentUserUpdated = useCallback((user) => {
+    setUserListRefreshKey((current) => current + 1)
+
+    setCurrentUser((current) => {
+      if (!current || String(current.id) !== String(user?.id)) {
+        return current
+      }
+
+      return getSafeCurrentUser(user)
+    })
   }, [])
 
   const handleShowRegister = useCallback(() => {
@@ -78,11 +113,26 @@ function App() {
     <>
       <CssBaseline />
       {authenticated ? (
-        <UserListPage
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          onUnauthenticated={handleUnauthenticated}
-        />
+        <>
+          <div hidden={activePage !== 'users'}>
+            <UserListPage
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onUnauthenticated={handleUnauthenticated}
+              onViewProfile={handleViewProfile}
+              refreshKey={userListRefreshKey}
+            />
+          </div>
+          {activePage === 'profile' && (
+            <UserProfilePage
+              userId={profileUserId}
+              currentUser={currentUser}
+              onBack={handleBackToUsers}
+              onCurrentUserUpdated={handleCurrentUserUpdated}
+              onUnauthenticated={handleUnauthenticated}
+            />
+          )}
+        </>
       ) : (
         authScreen === 'register' ? (
           <RegisterPage

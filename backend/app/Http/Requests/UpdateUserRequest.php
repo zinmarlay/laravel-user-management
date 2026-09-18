@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateUserRequest extends FormRequest
@@ -23,12 +24,39 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'sometimes|required|string|max:255',
-            /*before policy*/
-            // 'email' => 'sometimes|required|email|unique:users,email,' . $this->route('id'),
-            'email' => 'sometimes|required|email|unique:users,email,' . $this->route('user')->id,
-            'password' => 'sometimes|nullable|string|min:8',
-            'address' => 'nullable|string',
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                'unique:users,email,'.$this->route('user')->id,
+            ],
+            'address' => ['sometimes', 'nullable', 'string'],
+            'photo' => [
+                'sometimes',
+                'nullable',
+                'image',
+                'mimes:jpeg,png,webp',
+                'max:2048',
+            ],
+            'remove_photo' => ['sometimes', 'boolean'],
+            'password' => ['prohibited'],
+            'role' => ['prohibited'],
         ];
+    }
+
+    /**
+     * Ensure the request does not ask for replacement and removal together.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->hasFile('photo') && $this->boolean('remove_photo')) {
+                $validator->errors()->add(
+                    'photo',
+                    'Choose either a replacement photo or photo removal.',
+                );
+            }
+        });
     }
 }

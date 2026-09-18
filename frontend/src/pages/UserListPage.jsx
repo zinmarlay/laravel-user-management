@@ -6,8 +6,8 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import LogoutIcon from "@mui/icons-material/Logout";
 import UserDeleteDialog from "../components/users/UserDeleteDialog";
-import UserEditDialog from "../components/users/UserEditDialog";
 import UserAuthorizationDialog from "../components/users/UserAuthorizationDialog";
 import UserListPagination from "../components/users/UserListPagination";
 import {
@@ -32,7 +32,7 @@ function canPerformAction(action, currentUser, targetUser) {
     }
 
     return (
-        action === "edit" &&
+        (action === "edit" || action === "view") &&
         currentUser.role === "user" &&
         currentUser.id !== null &&
         currentUser.id !== undefined &&
@@ -45,6 +45,10 @@ function canPerformAction(action, currentUser, targetUser) {
 function getAuthorizationMessage(action, currentUser) {
     if (!currentUser || !["admin", "user"].includes(currentUser.role)) {
         return "User permissions are unavailable. Please sign in again.";
+    }
+
+    if (action === "view") {
+        return "You are not authorized to view this profile.";
     }
 
     if (action === "edit") {
@@ -70,7 +74,13 @@ function getRoleLabel(role) {
     return "Role unavailable";
 }
 
-function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
+function UserListPage({
+    currentUser,
+    onLogout,
+    onUnauthenticated,
+    onViewProfile,
+    refreshKey = 0,
+}) {
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState({ search: "", page: 1 });
     const [result, setResult] = useState(null);
@@ -79,7 +89,6 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
     const [retryKey, setRetryKey] = useState(0);
     const requestId = useRef(0);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [roleOpen, setRoleOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
@@ -92,9 +101,8 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
         setRetryKey((current) => current + 1);
     }, []);
 
-    function openEdit(user) {
-        setSelectedUser(user);
-        setEditOpen(true);
+    function openProfile(user) {
+        onViewProfile(user);
     }
 
     function openDelete(user) {
@@ -127,11 +135,6 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
         if (trigger && typeof trigger.focus === "function") {
             window.requestAnimationFrame(() => trigger.focus());
         }
-    }
-
-    function closeEdit() {
-        setEditOpen(false);
-        setSelectedUser(null);
     }
 
     function closeDelete() {
@@ -223,7 +226,7 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
             });
 
         return () => controller.abort();
-    }, [onUnauthenticated, query, retryKey]);
+    }, [onUnauthenticated, query, refreshKey, retryKey]);
 
     function handleSearchSubmit(event) {
         event.preventDefault();
@@ -300,7 +303,11 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
                         onClick={handleLogout}
                         disabled={loggingOut}
                         startIcon={
-                            loggingOut ? <CircularProgress size={16} /> : undefined
+                            loggingOut ? (
+                                <CircularProgress size={16} />
+                            ) : (
+                                <LogoutIcon />
+                            )
                         }
                     >
                         {loggingOut ? "Logging out…" : "Logout"}
@@ -351,8 +358,8 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
                         <Box className="user-list-page__table-wrap">
                             <UserTable
                                 users={result.rows}
-                                onEdit={(user) =>
-                                    handleActionAttempt("edit", user, openEdit)
+                                onViewProfile={(user) =>
+                                    handleActionAttempt("view", user, openProfile)
                                 }
                                 onDelete={(user) =>
                                     handleActionAttempt("delete", user, openDelete)
@@ -384,16 +391,6 @@ function UserListPage({ currentUser, onLogout, onUnauthenticated }) {
                 open={Boolean(authorizationAlert)}
                 message={authorizationAlert?.message || ""}
                 onClose={closeAuthorizationDialog}
-            />
-            <UserEditDialog
-                open={editOpen}
-                user={selectedUser}
-                onClose={closeEdit}
-                onUnauthenticated={onUnauthenticated}
-                onSaved={async () => {
-                    closeEdit();
-                    refreshList();
-                }}
             />
             <UserDeleteDialog
                 open={deleteOpen}

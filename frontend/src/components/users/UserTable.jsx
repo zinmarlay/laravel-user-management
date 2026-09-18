@@ -1,4 +1,5 @@
-import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -6,6 +7,9 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import UserAvatar from "./UserAvatar";
 
 function displayValue(value) {
@@ -20,7 +24,7 @@ function getAccessibleUserName(user) {
 
 function UserTable({
     users,
-    onEdit,
+    onViewProfile,
     onDelete,
     onChangeRole,
     actionsDisabled = false,
@@ -70,34 +74,42 @@ function UserTable({
                                     direction="row"
                                     spacing={0.75}
                                 >
-                                    <Button
-                                        size="small"
-                                        variant="outlined"
-                                        onClick={() => onEdit(user)}
-                                        disabled={actionsDisabled}
-                                        aria-label={`Edit ${getAccessibleUserName(user)}`}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        variant="outlined"
-                                        onClick={() => onDelete(user)}
-                                        disabled={actionsDisabled}
-                                        aria-label={`Delete ${getAccessibleUserName(user)}`}
-                                    >
-                                        Delete
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        variant="outlined"
-                                        onClick={() => onChangeRole(user)}
-                                        disabled={actionsDisabled}
-                                        aria-label={`Change role for ${getAccessibleUserName(user)}`}
-                                    >
-                                        Change Role
-                                    </Button>
+                                    <Tooltip title="View Profile" key="view-profile">
+                                        <span>
+                                            <IconButton
+                                                className="user-list-page__action-button user-list-page__action-button--view"
+                                                onClick={() => onViewProfile(user)}
+                                                disabled={actionsDisabled}
+                                                aria-label={`View profile for ${getAccessibleUserName(user)}`}
+                                            >
+                                                <VisibilityOutlinedIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Tooltip title="Change Role" key="change-role">
+                                        <span>
+                                            <IconButton
+                                                className="user-list-page__action-button user-list-page__action-button--role"
+                                                onClick={() => onChangeRole(user)}
+                                                disabled={actionsDisabled}
+                                                aria-label={`Change role for ${getAccessibleUserName(user)}`}
+                                            >
+                                                <GroupOutlinedIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Tooltip title="Delete" key="delete">
+                                        <span>
+                                            <IconButton
+                                                className="user-list-page__action-button user-list-page__action-button--delete"
+                                                onClick={() => onDelete(user)}
+                                                disabled={actionsDisabled}
+                                                aria-label={`Delete ${getAccessibleUserName(user)}`}
+                                            >
+                                                <DeleteOutlineIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
                                 </Stack>
                             </TableCell>
                         </TableRow>
